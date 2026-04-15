@@ -7,20 +7,20 @@
  */
 export const formatPhoneNumber = (phone: string): string => {
     if (!phone) return '';
-    
+
     // Remove all non-numeric characters
     const numbersOnly = phone.replace(/\D/g, '');
-    
+
     // If it starts with 91 and has 12 digits, strip the 91 prefix
     if (numbersOnly.startsWith('91') && numbersOnly.length === 12) {
         return numbersOnly.slice(2);
     }
-    
+
     // If it's already 10 digits, return as is
     if (numbersOnly.length === 10) {
         return numbersOnly;
     }
-    
+
     return numbersOnly;
 };
 

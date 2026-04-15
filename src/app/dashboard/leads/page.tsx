@@ -155,7 +155,6 @@ export default function LeadsPage() {
             toast.error('Please enter a valid 10-digit phone number');
             return;
         }
-
         try {
             await leadService.updateStatus(selectedLead.id, {
                 status: newStatus,

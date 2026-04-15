@@ -76,10 +76,10 @@ export default function UsersPage() {
         e.preventDefault();
         setValidationError(null);
 
-        // Validation for +91 followed by 10 digits
-        const mobileRegex = /^\+91[0-9]{10}$/;
+        // Validation for 10 digits
+        const mobileRegex = /^[0-9]{10}$/;
         if (!mobileRegex.test(formData.mobileNumber)) {
-            setValidationError('Please enter a valid mobile number (e.g. +919328573977)');
+            setValidationError('Please enter a valid 10-digit mobile number');
             return;
         }
 
@@ -130,10 +130,10 @@ export default function UsersPage() {
         if (!selectedUser) return;
         setValidationError(null);
 
-        // Validation for update (must include +91)
-        const mobileRegex = /^\+91[0-9]{10}$/;
+        // Validation for update (10 digits)
+        const mobileRegex = /^[0-9]{10}$/;
         if (!mobileRegex.test(formData.mobileNumber)) {
-            setValidationError('Please enter a valid mobile number (e.g. +919328573977)');
+            setValidationError('Please enter a valid 10-digit mobile number');
             return;
         }
 
@@ -296,7 +296,7 @@ export default function UsersPage() {
                                                         setFormData({
                                                             name: user.name || '',
                                                             username: user.username || '',
-                                                            mobileNumber: formatPhoneNumber(user.mobileNumber || ''),
+                                                            mobileNumber: user.mobileNumber || '',
                                                             password: '',
                                                             role: user.role || 'USER'
                                                         });
@@ -654,19 +654,19 @@ export default function UsersPage() {
                                 <div className="space-y-1.5 text-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Mobile</label>
                                     <div className="relative group/edit-mobile">
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 group-focus-within/edit-mobile:text-primary transition-colors">
-                                            +91
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors">
+                                            <Phone className="h-4 w-4" />
                                         </div>
                                         <input
                                             required
                                             type="tel"
                                             maxLength={10}
                                             placeholder="10-digit number"
-                                            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-gray-900"
-                                            value={formData.mobileNumber.startsWith('+91') ? formData.mobileNumber.slice(3) : formData.mobileNumber.replace(/\D/g, '')}
+                                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-gray-900"
+                                            value={formData.mobileNumber}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                                setFormData({ ...formData, mobileNumber: `+91${val}` });
+                                                setFormData({ ...formData, mobileNumber: val });
                                             }}
                                         />
                                     </div>

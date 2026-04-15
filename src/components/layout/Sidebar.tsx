@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Settings, LogOut, BarChart3, ChevronLeft, ChevronRight, Scale, MessageSquareQuote, HelpCircle, LayoutTemplate, Phone, ShieldCheck, Briefcase, Landmark, FileText, Building2, ClipboardList, Share2, PhoneForwarded, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppDispatch } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
