@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppDispatch } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
@@ -38,6 +38,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, toggleCollapse }: Sideba
         { name: 'Users', icon: Users, href: '/dashboard/users' },
         { name: 'Call Leads', icon: PhoneForwarded, href: '/dashboard/calls' },
         { name: 'Leads Management', icon: UserCheck, href: '/dashboard/leads' },
+        { name: 'Loan Types', icon: FileText, href: '/dashboard/loan-types' },
     ];
 
     return (
