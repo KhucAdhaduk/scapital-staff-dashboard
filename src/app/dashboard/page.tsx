@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Users, Phone, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { Phone, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { leadService, LeadStats } from '@/services/leadService';
 import {
     LineChart,
@@ -13,16 +13,6 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
-
-const dummyGraphData = [
-    { name: 'Mon', calls: 45 },
-    { name: 'Tue', calls: 52 },
-    { name: 'Wed', calls: 38 },
-    { name: 'Thu', calls: 65 },
-    { name: 'Fri', calls: 48 },
-    { name: 'Sat', calls: 24 },
-    { name: 'Sun', calls: 15 },
-];
 
 export default function DashboardPage() {
     const [stats, setStats] = useState<LeadStats>({

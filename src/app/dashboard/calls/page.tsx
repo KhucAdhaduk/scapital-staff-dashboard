@@ -66,12 +66,12 @@ export default function CallsPage() {
 
     useEffect(() => {
         fetchCalls();
-    }, [dateRange, assignedToFilter, statusFilter, page, searchTerm]);
+    }, [fetchCalls]);
 
-    const fetchCalls = async () => {
+    const fetchCalls = React.useCallback(async () => {
         try {
             setLoading(true);
-            const params: any = {
+            const params: Record<string, string | number | undefined> = {
                 page,
                 limit,
             };
@@ -89,12 +89,12 @@ export default function CallsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, limit, dateRange, assignedToFilter, statusFilter, searchTerm]);
 
     const handleExport = async () => {
         try {
             toast.loading('Exporting...', { id: 'export' });
-            const params: any = {};
+            const params: Record<string, string | undefined> = {};
             if (dateRange.start) params.startDate = dateRange.start;
             if (dateRange.end) params.endDate = dateRange.end;
             if (assignedToFilter !== 'all') params.assignedToId = assignedToFilter;

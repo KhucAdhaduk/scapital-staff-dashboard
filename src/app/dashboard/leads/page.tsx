@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import axios from '@/utils/axios';
-import { leadService, Lead } from '@/services/leadService';
-import { Search, Filter, Phone, UserPlus, Calendar, Clock, MessageSquare, MoreVertical, CheckCircle2, History, XCircle, Info, User, ChevronDown, Check, Eye, Edit2, Trash2, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { clsx } from 'clsx';
-import toast from 'react-hot-toast';
+import { Lead, leadService } from '@/services/leadService';
 import { useAppSelector } from '@/store/hooks';
+import axios from '@/utils/axios';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
+import { clsx } from 'clsx';
+import { format } from 'date-fns';
+import { Calendar, Check, ChevronDown, Edit2, Eye, Info, Phone, Search, Trash2, User, UserPlus, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 const STATUS_TABS = [
     { id: 'all', label: 'All Leads' },
@@ -69,7 +69,7 @@ export default function LeadsPage() {
         };
         loadUsers();
         fetchLeads();
-    }, [activeTab, dateRange, assignedToFilter]);
+    }, [fetchLeads]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -88,7 +88,7 @@ export default function LeadsPage() {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [activeRowDropdown]);
 
     useEffect(() => {
         if (!isAgentDropdownOpen) setAgentFilterSearch('');
@@ -129,10 +129,10 @@ export default function LeadsPage() {
         }
     };
 
-    const fetchLeads = async () => {
+    const fetchLeads = React.useCallback(async () => {
         try {
             setLoading(true);
-            const params: any = { status: activeTab === 'all' ? undefined : activeTab };
+            const params: Record<string, string | undefined> = { status: activeTab === 'all' ? undefined : activeTab };
             if (dateRange.start) params.startDate = dateRange.start;
             if (dateRange.end) params.endDate = dateRange.end;
             if (assignedToFilter !== 'all') params.assignedToId = assignedToFilter;
@@ -144,7 +144,7 @@ export default function LeadsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeTab, dateRange, assignedToFilter]);
 
     const handleUpdateStatus = async () => {
         if (!selectedLead) return;
@@ -170,8 +170,9 @@ export default function LeadsPage() {
             setFollowUpDate('');
             fetchLeads();
             toast.success('Lead updated successfully');
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Failed to update lead';
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            const msg = err.response?.data?.message || 'Failed to update lead';
             toast.error(typeof msg === 'string' ? msg : 'Failed to update lead');
         }
     };
@@ -644,7 +645,7 @@ export default function LeadsPage() {
                                         <h4 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">General Lead Notes</h4>
                                     </div>
                                     <p className="text-sm font-medium text-amber-900/80 leading-relaxed italic">
-                                        "{selectedLead.notes.trim()}"
+                                        &quot;{selectedLead.notes.trim()}&quot;
                                     </p>
                                 </div>
                             )}
@@ -754,7 +755,7 @@ export default function LeadsPage() {
                                                             {log.notes && log.notes.trim() && !log.notes.startsWith('Outcome set to') && (
                                                                 <p className="text-xs leading-snug text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100/50 mt-1.5 flex flex-col gap-1">
                                                                     <span className="font-bold text-[9px] uppercase tracking-widest text-gray-400">Notes</span>
-                                                                    <span className="font-medium italic">"{log.notes.trim()}"</span>
+                                                                    <span className="font-medium italic">&quot;{log.notes.trim()}&quot;</span>
                                                                 </p>
                                                             )}
                                                         </div>

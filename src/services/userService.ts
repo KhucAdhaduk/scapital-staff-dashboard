@@ -15,7 +15,7 @@ export const userService = {
     return response.data;
   },
 
-  createUser: async (data: any) => {
+  createUser: async (data: Omit<User, 'id' | 'createdAt'> & { password?: string }) => {
     const response = await axios.post('auth/users', data);
     return response.data;
   },
@@ -25,7 +25,7 @@ export const userService = {
     return response.data;
   },
 
-  updateUser: async (id: string, data: any) => {
+  updateUser: async (id: string, data: Partial<User>) => {
     const response = await axios.patch(`auth/users/${id}`, data);
     return response.data;
   },

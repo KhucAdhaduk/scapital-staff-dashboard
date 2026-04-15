@@ -97,8 +97,9 @@ export default function UsersPage() {
             setFormData({ name: '', username: '', mobileNumber: '', password: '', role: 'USER' });
             setShowPassword(false);
             fetchUsers();
-        } catch (error: any) {
-            setValidationError(error.response?.data?.message || 'Failed to create user');
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            setValidationError(err.response?.data?.message || 'Failed to create user');
         }
     };
 
@@ -120,8 +121,9 @@ export default function UsersPage() {
             setNewPassword('');
             setShowResetPassword(false);
             setSelectedUser(null);
-        } catch (error: any) {
-            setValidationError(error.response?.data?.message || 'Failed to reset password');
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            setValidationError(err.response?.data?.message || 'Failed to reset password');
         }
     };
 
@@ -149,8 +151,9 @@ export default function UsersPage() {
             setIsEditModalOpen(false);
             setFormData({ name: '', username: '', mobileNumber: '', password: '', role: 'USER' });
             fetchUsers();
-        } catch (error: any) {
-            setValidationError(error.response?.data?.message || 'Failed to update user');
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            setValidationError(err.response?.data?.message || 'Failed to update user');
         }
     };
 
@@ -162,8 +165,9 @@ export default function UsersPage() {
             setIsDeleteModalOpen(false);
             setSelectedUser(null);
             fetchUsers();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to delete user');
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err.response?.data?.message || 'Failed to delete user');
         }
     };
 
