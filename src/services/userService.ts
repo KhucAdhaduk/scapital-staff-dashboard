@@ -1,0 +1,37 @@
+import axios from '@/utils/axios';
+
+export interface User {
+  id: string;
+  name: string | null;
+  username: string;
+  mobileNumber: string | null;
+  role: string;
+  createdAt: string;
+}
+
+export const userService = {
+  getUsers: async () => {
+    const response = await axios.get<User[]>('auth/users');
+    return response.data;
+  },
+
+  createUser: async (data: any) => {
+    const response = await axios.post('auth/users', data);
+    return response.data;
+  },
+
+  resetPassword: async (id: string, password: string) => {
+    const response = await axios.patch(`auth/users/${id}/reset-password`, { password });
+    return response.data;
+  },
+
+  updateUser: async (id: string, data: any) => {
+    const response = await axios.patch(`auth/users/${id}`, data);
+    return response.data;
+  },
+
+  deleteUser: async (id: string) => {
+    const response = await axios.delete(`auth/users/${id}`);
+    return response.data;
+  },
+};
