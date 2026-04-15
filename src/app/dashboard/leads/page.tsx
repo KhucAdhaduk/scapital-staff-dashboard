@@ -60,16 +60,6 @@ export default function LeadsPage() {
     const [updatingAgent, setUpdatingAgent] = useState<string | null>(null);
     const [rowAgentEditSearch, setRowAgentEditSearch] = useState('');
 
-    useEffect(() => {
-        const loadUsers = async () => {
-            try {
-                const response = await axios.get('auth/users');
-                setUsers(response.data);
-            } catch (e) { console.error('Failed to load users', e); }
-        };
-        loadUsers();
-        fetchLeads();
-    }, [fetchLeads]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -145,6 +135,17 @@ export default function LeadsPage() {
             setLoading(false);
         }
     }, [activeTab, dateRange, assignedToFilter]);
+
+    useEffect(() => {
+        const loadUsers = async () => {
+            try {
+                const response = await axios.get('auth/users');
+                setUsers(response.data);
+            } catch (e) { console.error('Failed to load users', e); }
+        };
+        loadUsers();
+        fetchLeads();
+    }, [fetchLeads]);
 
     const handleUpdateStatus = async () => {
         if (!selectedLead) return;

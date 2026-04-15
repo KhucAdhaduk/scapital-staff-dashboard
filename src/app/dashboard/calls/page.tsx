@@ -5,7 +5,7 @@ import { CallLog, LeadStats, leadService } from '@/services/leadService';
 import { userService } from '@/services/userService';
 import { format } from 'date-fns';
 import { ArrowDownLeft, ArrowUpRight, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, Filter, Phone, PhoneMissed, PhoneOutgoing, Search, User, UserPlus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
 
@@ -64,10 +64,6 @@ export default function CallsPage() {
         loadInitialData();
     }, []);
 
-    useEffect(() => {
-        fetchCalls();
-    }, [fetchCalls]);
-
     const fetchCalls = React.useCallback(async () => {
         try {
             setLoading(true);
@@ -90,6 +86,10 @@ export default function CallsPage() {
             setLoading(false);
         }
     }, [page, limit, dateRange, assignedToFilter, statusFilter, searchTerm]);
+
+    useEffect(() => {
+        fetchCalls();
+    }, [fetchCalls]);
 
     const handleExport = async () => {
         try {
@@ -434,14 +434,13 @@ export default function CallsPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                call.callType === 'INCOMING' ? 'text-blue-600' : 
-                                                call.callType === 'MISSED' ? 'text-red-500' : 
-                                                'text-purple-600'
+                                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${call.callType === 'INCOMING' ? 'text-blue-600' :
+                                                    call.callType === 'MISSED' ? 'text-red-500' :
+                                                        'text-purple-600'
                                                 }`}>
-                                                {call.callType === 'INCOMING' ? <ArrowDownLeft className="h-3 w-3" /> : 
-                                                 call.callType === 'MISSED' ? <PhoneMissed className="h-3 w-3" /> : 
-                                                 <ArrowUpRight className="h-3 w-3" />}
+                                                {call.callType === 'INCOMING' ? <ArrowDownLeft className="h-3 w-3" /> :
+                                                    call.callType === 'MISSED' ? <PhoneMissed className="h-3 w-3" /> :
+                                                        <ArrowUpRight className="h-3 w-3" />}
                                                 {call.callType}
                                             </span>
                                         </td>
