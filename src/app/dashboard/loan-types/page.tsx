@@ -175,13 +175,15 @@ export default function LoanTypesPage() {
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => handleOpenModal(type)}
-                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors shadow-sm border border-indigo-100/50"
+                                                    title="Edit Loan Type"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => { setSelectedLoanType(type); setIsDeleteModalOpen(true); }}
-                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors shadow-sm border border-red-100/50"
+                                                    title="Delete Loan Type"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -235,7 +237,7 @@ export default function LoanTypesPage() {
                                     <button
                                         type="button"
                                         onClick={handleAddDocument}
-                                        className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-bold text-xs"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-all font-bold text-xs border border-primary/20"
                                     >
                                         <PlusCircle className="h-4 w-4" />
                                         Add Item
@@ -268,7 +270,7 @@ export default function LoanTypesPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleRemoveDocument(index)}
-                                                    className="flex-none p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                    className="flex-none p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-100"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
