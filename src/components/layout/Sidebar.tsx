@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppDispatch } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
@@ -35,6 +35,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, toggleCollapse }: Sideba
 
     const menuItems = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+        { name: 'Loan Types', icon: FileText, href: '/dashboard/loan-types' },
         { name: 'Users', icon: Users, href: '/dashboard/users' },
         { name: 'Call Leads', icon: PhoneForwarded, href: '/dashboard/calls' },
         { name: 'Leads Management', icon: UserCheck, href: '/dashboard/leads' },
@@ -60,7 +61,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, toggleCollapse }: Sideba
                 )}
             >
                 <div className={clsx("flex h-16 items-center border-b transition-all flex-shrink-0", isCollapsed ? "justify-center px-0" : "justify-between px-6")}>
-                    {!isCollapsed && <h1 className="text-2xl font-bold text-primary truncate">AdminPanel</h1>}
+                    {!isCollapsed && <h1 className="text-2xl font-bold text-primary truncate">Scapital Staff</h1>}
                     {isCollapsed && <span className="text-2xl font-bold text-primary">AP</span>}
 
                     <button onClick={toggleCollapse} className={clsx("hidden lg:block text-gray-400 hover:text-gray-600", !isCollapsed && "ml-auto")}>

@@ -1,4 +1,5 @@
 import axios from '@/utils/axios';
+import { LoanType } from './loanTypeService';
 
 export interface Lead {
   id: string;
@@ -16,6 +17,8 @@ export interface Lead {
   createdAt: string;
   updatedAt: string;
   assignedToId: string | null;
+  loanTypeId: string | null;
+  loanType?: LoanType;
   assignedTo?: { id: string; name: string; email: string };
   callLogs?: CallLog[];
   _count?: { callLogs: number };
@@ -60,14 +63,15 @@ export const leadService = {
     return response.data;
   },
 
-  updateStatus: async (id: string, data: { 
-    status: string; 
-    name?: string; 
+  updateStatus: async (id: string, data: {
+    status: string;
+    name?: string;
     phoneNumber?: string;
     assignedToId?: string | null;
-    notes?: string; 
-    nextFollowUpAt?: string; 
-    priority?: string; 
+    loanTypeId?: string | null;
+    notes?: string;
+    nextFollowUpAt?: string;
+    priority?: string;
     source?: string;
     userId?: string;
   }) => {

@@ -1,17 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Phone, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { leadService, LeadStats } from '@/services/leadService';
+import { CheckCircle2, Clock, Phone, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
-    LineChart,
+    CartesianGrid,
     Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
     XAxis,
     YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
 } from 'recharts';
 
 export default function DashboardPage() {
