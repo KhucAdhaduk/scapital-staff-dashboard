@@ -54,12 +54,12 @@ export interface LeadStats {
 
 export const leadService = {
   getLeads: async (params?: { status?: string; startDate?: string; endDate?: string; assignedToId?: string }) => {
-    const response = await axios.get<Lead[]>('leads', { params });
+    const response = await axios.get<Lead[]>('v1/leads', { params });
     return response.data;
   },
 
   getLead: async (id: string) => {
-    const response = await axios.get<{ lead: Lead; calllogs: CallLog[] }>(`leads/${id}`);
+    const response = await axios.get<{ lead: Lead; calllogs: CallLog[] }>(`v1/leads/${id}`);
     return response.data;
   },
 
@@ -75,22 +75,22 @@ export const leadService = {
     source?: string;
     userId?: string;
   }) => {
-    const response = await axios.post(`leads/${id}/call-result`, data);
+    const response = await axios.post(`v1/leads/${id}/call-result`, data);
     return response.data;
   },
 
   assignLead: async (id: string, userId: string) => {
-    const response = await axios.patch(`leads/${id}/assign`, { userId });
+    const response = await axios.patch(`v1/leads/${id}/assign`, { userId });
     return response.data;
   },
 
   deleteLead: async (id: string) => {
-    const response = await axios.delete(`leads/${id}`);
+    const response = await axios.delete(`v1/leads/${id}`);
     return response.data;
   },
 
   getStats: async () => {
-    const response = await axios.get<LeadStats>('leads/stats');
+    const response = await axios.get<LeadStats>('v1/leads/stats');
     return response.data;
   },
 };

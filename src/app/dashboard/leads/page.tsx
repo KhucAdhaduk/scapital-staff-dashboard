@@ -149,7 +149,7 @@ export default function LeadsPage() {
         const loadData = async () => {
             try {
                 const [usersRes, loanTypesRes] = await Promise.all([
-                    axios.get('auth/users'),
+                    axios.get('v1/auth/users'),
                     loanTypeService.getLoanTypes()
                 ]);
                 setUsers(usersRes.data);
