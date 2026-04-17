@@ -16,8 +16,6 @@ export default function LoanTypesPage() {
     // Form State
     const [formName, setFormName] = useState('');
     const [formDocuments, setFormDocuments] = useState<LoanDocument[]>([]);
-    const [newDocName, setNewDocName] = useState('');
-
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -41,7 +39,6 @@ export default function LoanTypesPage() {
         setSelectedLoanType(null);
         setFormName('');
         setFormDocuments([{ name: '', description: '' }]);
-        setNewDocName('');
         setIsModalOpen(true);
     };
 
@@ -50,7 +47,6 @@ export default function LoanTypesPage() {
         setFormName(loanType.name);
         // Ensure documents is always an array of objects
         setFormDocuments(Array.isArray(loanType.documents) ? loanType.documents : []);
-        setNewDocName('');
         setIsModalOpen(true);
     };
 
@@ -287,7 +283,7 @@ export default function LoanTypesPage() {
                                 <div className="space-y-4">
                                     {formDocuments.length === 0 ? (
                                         <div className="bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                                            <p className="text-sm font-medium text-gray-400">No documents added yet. Click "Add Item" to start.</p>
+                                            <p className="text-sm font-medium text-gray-400">No documents added yet. Click &quot;Add Item&quot; to start.</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">

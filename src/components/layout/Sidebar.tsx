@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck, FileText, Building } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, PhoneForwarded, UserCheck, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
@@ -14,10 +14,9 @@ interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
     isCollapsed: boolean;
-    toggleCollapse: () => void;
 }
 
-export function Sidebar({ isOpen, onClose, isCollapsed, toggleCollapse }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
     const pathname = usePathname();
     const dispatch = useAppDispatch();
     const { user } = useAppSelector((state) => state.auth);
