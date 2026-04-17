@@ -1,12 +1,13 @@
 'use client';
 
 import { Lead, leadService } from '@/services/leadService';
+import { LoanType, loanTypeService } from '@/services/loanTypeService';
 import { useAppSelector } from '@/store/hooks';
 import axios from '@/utils/axios';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
-import { Calendar, Check, ChevronDown, Edit2, Eye, Info, Phone, Search, Trash2, User, UserPlus, X } from 'lucide-react';
+import { Calendar, Check, ChevronDown, Edit2, Eye, FileSpreadsheet, Info, Phone, Search, Trash2, User, UserPlus, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -53,7 +54,12 @@ export default function LeadsPage() {
     const agentDropdownRef = useRef<HTMLDivElement>(null);
     const outcomeDropdownRef = useRef<HTMLDivElement>(null);
     const agentEditDropdownRef = useRef<HTMLDivElement>(null);
+    const loanTypeDropdownRef = useRef<HTMLDivElement>(null);
     const [users, setUsers] = useState<{ id: string, name: string }[]>([]);
+    const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
+    const [editLoanTypeId, setEditLoanTypeId] = useState('');
+    const [editLoanTypeSearch, setEditLoanTypeSearch] = useState('');
+    const [isLoanTypeDropdownOpen, setIsLoanTypeDropdownOpen] = useState(false);
 
     // Row assignment state
     const [activeRowDropdown, setActiveRowDropdown] = useState<string | null>(null);
@@ -71,6 +77,9 @@ export default function LeadsPage() {
             }
             if (agentEditDropdownRef.current && !agentEditDropdownRef.current.contains(event.target as Node)) {
                 setIsAgentEditDropdownOpen(false);
+            }
+            if (loanTypeDropdownRef.current && !loanTypeDropdownRef.current.contains(event.target as Node)) {
+                setIsLoanTypeDropdownOpen(false);
             }
             if (activeRowDropdown && !(event.target as HTMLElement).closest('.agent-dropdown-container')) {
                 setActiveRowDropdown(null);
@@ -137,13 +146,17 @@ export default function LeadsPage() {
     }, [activeTab, dateRange, assignedToFilter]);
 
     useEffect(() => {
-        const loadUsers = async () => {
+        const loadData = async () => {
             try {
-                const response = await axios.get('auth/users');
-                setUsers(response.data);
-            } catch (e) { console.error('Failed to load users', e); }
+                const [usersRes, loanTypesRes] = await Promise.all([
+                    axios.get('auth/users'),
+                    loanTypeService.getLoanTypes()
+                ]);
+                setUsers(usersRes.data);
+                setLoanTypes(loanTypesRes);
+            } catch (e) { console.error('Failed to load initial data', e); }
         };
-        loadUsers();
+        loadData();
         fetchLeads();
     }, [fetchLeads]);
 
@@ -162,6 +175,7 @@ export default function LeadsPage() {
                 name: editName,
                 phoneNumber: editPhone,
                 assignedToId: editAssignedToId || null,
+                loanTypeId: editLoanTypeId || null,
                 notes: notes,
                 nextFollowUpAt: newStatus === 'FOLLOW_UP' ? (followUpDate || undefined) : undefined,
                 userId: currentUser?.id
@@ -175,6 +189,12 @@ export default function LeadsPage() {
             const err = error as { response?: { data?: { message?: string } } };
             const msg = err.response?.data?.message || 'Failed to update lead';
             toast.error(typeof msg === 'string' ? msg : 'Failed to update lead');
+            
+            // If the lead was assigned to someone else, hide it by refreshing
+            if (msg === 'This lead is already assigned to another mobile user' || msg === 'Forbidden') {
+                setIsStatusModalOpen(false);
+                fetchLeads();
+            }
         }
     };
 
@@ -184,8 +204,10 @@ export default function LeadsPage() {
         setEditName(lead.name || '');
         setEditPhone(formatPhoneNumber(lead.phoneNumber));
         setEditAssignedToId(lead.assignedToId || '');
+        setEditLoanTypeId(lead.loanTypeId || '');
         setIsAgentEditDropdownOpen(false);
         setIsOutcomeDropdownOpen(false);
+        setIsLoanTypeDropdownOpen(false);
         setNotes(lead.notes || '');
         setIsStatusModalOpen(true);
     };
@@ -202,9 +224,16 @@ export default function LeadsPage() {
                 ...fullLead.lead,
                 callLogs: fullLead.calllogs
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to fetch lead details:', error);
-            toast.error('Failed to load lead history');
+            const err = error as { response?: { data?: { message?: string } } };
+            const msg = err.response?.data?.message || 'Failed to load lead history';
+            toast.error(typeof msg === 'string' ? msg : 'Failed to load lead history');
+            
+            if (msg === 'This lead is already assigned to another mobile user' || msg === 'Forbidden') {
+                setIsViewModalOpen(false);
+                fetchLeads();
+            }
         }
     };
 
@@ -241,6 +270,7 @@ export default function LeadsPage() {
             'Lead Name': lead.name || 'Anonymous Lead',
             'Phone Number': lead.phoneNumber,
             'Status': lead.status.replace('_', ' '),
+            'Loan Type': lead.loanType?.name || '---',
             'Call Time & Date': lead.lastCallAt ? format(new Date(lead.lastCallAt), 'MMM d, yyyy hh:mm a') : 'Never',
             'Next Follow-up': lead.nextFollowUpAt ? format(new Date(lead.nextFollowUpAt), 'MMM d, yyyy hh:mm a') : 'None',
             'Assigned Agent': lead.assignedTo?.name || 'Unassigned'
@@ -400,18 +430,19 @@ export default function LeadsPage() {
             </div>
 
             {/* Leads Table Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible flex flex-col">
-                <div className="overflow-visible max-lg:overflow-x-auto min-h-[300px] pb-24">
-                    <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+                <div className="overflow-x-auto min-h-[300px] pb-[160px]">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
                         <thead className="bg-gray-50/50 border-b border-gray-100">
                             <tr>
                                 <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead ID</th>
-                                <th className="w-[20%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead Details</th>
-                                <th className="w-[14%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                                <th className="w-[18%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Call Time & Date</th>
-                                <th className="w-[14%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Next Follow-up</th>
-                                <th className="w-[14%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assigned Agent</th>
-                                <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
+                                <th className="w-[17%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead Details</th>
+                                <th className="w-[11%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Loan Type</th>
+                                <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                                <th className="w-[14%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Call Time & Date</th>
+                                <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Next Follow-up</th>
+                                <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assigned Agent</th>
+                                <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -423,7 +454,7 @@ export default function LeadsPage() {
                                 ))
                             ) : filteredLeads.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-20 text-center text-gray-400">
+                                    <td colSpan={8} className="px-6 py-20 text-center text-gray-400">
                                         <Info className="h-10 w-10 mx-auto mb-3 opacity-20" />
                                         <p className="text-sm font-medium">No leads found matching your criteria</p>
                                     </td>
@@ -451,8 +482,17 @@ export default function LeadsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
+                                            {lead.loanType?.name ? (
+                                                <span className="whitespace-nowrap inline-block text-xs font-bold text-[#00a651] bg-[#00a651]/10 px-2.5 py-1 rounded-lg border border-[#00a651]/20">
+                                                    {lead.loanType.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300 text-xs">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <span className={clsx(
-                                                "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                                "whitespace-nowrap inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
                                                 lead.status === 'NEW' ? 'bg-blue-50 text-blue-600' :
                                                     lead.status === 'FOLLOW_UP' ? 'bg-amber-50 text-amber-600' :
                                                         lead.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' :
@@ -484,7 +524,7 @@ export default function LeadsPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {lead.nextFollowUpAt ? (
+                                            {lead.nextFollowUpAt && (lead.status === 'FOLLOW_UP' || lead.status === 'RECALL') && new Date(lead.nextFollowUpAt).getTime() > Date.now() ? (
                                                 <div className="flex flex-col">
                                                     <span className="text-xs font-bold text-indigo-600">
                                                         {format(new Date(lead.nextFollowUpAt), 'MMM d')}
@@ -498,20 +538,20 @@ export default function LeadsPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 relative agent-dropdown-container">
-                                            <div className="flex justify-start">
+                                            <div className="flex justify-start w-full max-w-[140px]">
                                                 <button
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all duration-300 font-bold text-[10px] uppercase tracking-wider ${activeRowDropdown === lead.id
-                                                        ? 'bg-primary/5 border-primary text-primary shadow-sm'
+                                                    className={`w-full flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border-2 transition-all duration-300 font-bold text-[10px] uppercase tracking-wider ${activeRowDropdown === lead.id
+                                                        ? 'bg-[#00a651]/5 border-[#00a651] text-[#00a651] shadow-sm'
                                                         : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                                         }`}
                                                     onClick={() => setActiveRowDropdown(activeRowDropdown === lead.id ? null : lead.id)}
                                                     disabled={updatingAgent === lead.id}
                                                 >
-                                                    <div className={`h-1.5 w-1.5 rounded-full ${lead.assignedTo?.id ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]' : 'bg-gray-300'}`} />
-                                                    <span className="truncate max-w-[100px]">
+                                                    <div className={`flex-none h-1.5 w-1.5 rounded-full ${lead.assignedTo?.id ? 'bg-[#00a651] shadow-[0_0_8px_rgba(0,166,81,0.5)]' : 'bg-gray-300'}`} />
+                                                    <span className="flex-1 truncate text-left">
                                                         {updatingAgent === lead.id ? '...' : (lead.assignedTo?.name || 'Unassigned')}
                                                     </span>
-                                                    <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${activeRowDropdown === lead.id ? 'rotate-180' : 'opacity-40'}`} />
+                                                    <ChevronDown className={`flex-none h-3 w-3 transition-transform duration-300 ${activeRowDropdown === lead.id ? 'rotate-180' : 'opacity-40'}`} />
                                                 </button>
                                             </div>
 
@@ -534,7 +574,7 @@ export default function LeadsPage() {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="px-2 space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
+                                                    <div className="px-2 space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                                                         {!rowAgentEditSearch && (
                                                             <button
                                                                 className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all duration-200 group ${!lead.assignedTo?.id
@@ -582,21 +622,21 @@ export default function LeadsPage() {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => openViewModal(lead)}
-                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shadow-sm border border-blue-100/50"
                                                     title="View"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => openStatusModal(lead)}
-                                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors shadow-sm border border-indigo-100/50"
                                                     title="Edit"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => openDeleteModal(lead)}
-                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors shadow-sm border border-red-100/50"
                                                     title="Delete"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -630,6 +670,16 @@ export default function LeadsPage() {
                                 <div className="space-y-1">
                                     <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lead ID</label>
                                     <p className="text-lg font-mono font-bold text-gray-900 tracking-tight">{selectedLead.leadId || '----'}</p>
+                                </div>
+                                <div className="h-10 w-px bg-gray-200" />
+                                <div className="space-y-1 px-4 flex-grow text-center">
+                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Loan Type</label>
+                                    <span className={clsx(
+                                        "inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                        selectedLead.loanType ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"
+                                    )}>
+                                        {selectedLead.loanType?.name || 'Unassigned'}
+                                    </span>
                                 </div>
                                 <div className="h-10 w-px bg-gray-200" />
                                 <div className="space-y-1 text-right">
@@ -793,7 +843,7 @@ export default function LeadsPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-bottom-4 duration-300">
                         <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                <Edit2 className="h-5 w-5 text-indigo-600" />
+                                <Edit2 className="h-5 w-5 text-[#00a651]" />
                                 Edit Lead: {selectedLead?.leadId || '----'}
                             </h2>
                             <button onClick={() => setIsStatusModalOpen(false)} className="text-gray-400 hover:text-gray-600">
@@ -808,7 +858,7 @@ export default function LeadsPage() {
                                         type="text"
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 text-gray-900 bg-white"
+                                        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 text-gray-900 bg-white"
                                         placeholder="Lead Name"
                                     />
                                 </div>
@@ -822,7 +872,7 @@ export default function LeadsPage() {
                                             const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                                             setEditPhone(val);
                                         }}
-                                        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 text-gray-900 bg-white"
+                                        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 text-gray-900 bg-white"
                                         placeholder="10-digit number"
                                     />
                                 </div>
@@ -834,14 +884,14 @@ export default function LeadsPage() {
                                         <button
                                             type="button"
                                             onClick={() => setIsOutcomeDropdownOpen(!isOutcomeDropdownOpen)}
-                                            className="w-full flex items-center justify-between border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 text-gray-900 bg-white transition-all hover:border-gray-300"
+                                            className="w-full flex items-center justify-between border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 text-gray-900 bg-white transition-all hover:border-gray-300"
                                         >
                                             <span>{newStatus ? newStatus.replace('_', ' ') : 'Select Status'}</span>
                                             <ChevronDown className={clsx("h-4 w-4 text-gray-400 transition-transform duration-200", isOutcomeDropdownOpen && "rotate-180")} />
                                         </button>
 
                                         {isOutcomeDropdownOpen && (
-                                            <div className="absolute z-[60] mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top max-h-48 overflow-y-auto custom-scrollbar">
+                                            <div className="absolute z-[60] mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100 origin-top max-h-40 overflow-y-auto custom-scrollbar">
                                                 {[
                                                     { id: 'NEW', label: 'New' },
                                                     { id: 'FOLLOW_UP', label: 'follow up' },
@@ -862,7 +912,7 @@ export default function LeadsPage() {
                                                         }}
                                                         className={clsx(
                                                             "w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between",
-                                                            newStatus === opt.id ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-700 hover:bg-gray-50"
+                                                            newStatus === opt.id ? "bg-[#00a651]/10 text-[#00a651] font-bold" : "text-gray-700 hover:bg-gray-50"
                                                         )}
                                                     >
                                                         {opt.label}
@@ -879,14 +929,14 @@ export default function LeadsPage() {
                                         <button
                                             type="button"
                                             onClick={() => setIsAgentEditDropdownOpen(!isAgentEditDropdownOpen)}
-                                            className="w-full flex items-center justify-between border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 text-gray-900 bg-white transition-all hover:border-gray-300"
+                                            className="w-full flex items-center justify-between border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 text-gray-900 bg-white transition-all hover:border-gray-300"
                                         >
                                             <span>{editAssignedToId ? users.find(u => u.id === editAssignedToId)?.name : 'Unassigned'}</span>
                                             <ChevronDown className={clsx("h-4 w-4 text-gray-400 transition-transform duration-200", isAgentEditDropdownOpen && "rotate-180")} />
                                         </button>
 
                                         {isAgentEditDropdownOpen && (
-                                            <div className="absolute z-[60] mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top">
+                                            <div className="absolute z-[60] mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl py-2 animate-in fade-in zoom-in-95 duration-100 origin-top">
                                                 <div className="px-3 pb-2 mb-2 border-b border-gray-50">
                                                     <div className="relative">
                                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
@@ -900,7 +950,7 @@ export default function LeadsPage() {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                <div className="max-h-40 overflow-y-auto custom-scrollbar">
                                                     {!agentEditSearch && (
                                                         <button
                                                             type="button"
@@ -910,7 +960,7 @@ export default function LeadsPage() {
                                                             }}
                                                             className={clsx(
                                                                 "w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between",
-                                                                !editAssignedToId ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-700 hover:bg-gray-50"
+                                                                !editAssignedToId ? "bg-[#00a651]/10 text-[#00a651] font-bold" : "text-gray-700 hover:bg-gray-50"
                                                             )}
                                                         >
                                                             Unassigned
@@ -927,7 +977,7 @@ export default function LeadsPage() {
                                                             }}
                                                             className={clsx(
                                                                 "w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between",
-                                                                editAssignedToId === user.id ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-700 hover:bg-gray-50"
+                                                                editAssignedToId === user.id ? "bg-[#00a651]/10 text-[#00a651] font-bold" : "text-gray-700 hover:bg-gray-50"
                                                             )}
                                                         >
                                                             {user.name}
@@ -951,7 +1001,7 @@ export default function LeadsPage() {
                                                 d.setHours(d.getHours() + 1);
                                                 setFollowUpDate(format(d, "yyyy-MM-dd'T'HH:mm"));
                                             }}
-                                            className="text-[10px] py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 font-bold transition-colors"
+                                            className="text-[10px] py-2 bg-[#00a651]/10 hover:bg-[#00a651]/20 rounded-lg text-[#00a651] font-bold transition-colors"
                                         >
                                             +1 HOUR
                                         </button>
@@ -962,7 +1012,7 @@ export default function LeadsPage() {
                                                 d.setHours(10, 0, 0, 0);
                                                 setFollowUpDate(format(d, "yyyy-MM-dd'T'HH:mm"));
                                             }}
-                                            className="text-[10px] py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 font-bold transition-colors"
+                                            className="text-[10px] py-2 bg-[#00a651]/10 hover:bg-[#00a651]/20 rounded-lg text-[#00a651] font-bold transition-colors"
                                         >
                                             TOMORROW 10AM
                                         </button>
@@ -972,7 +1022,7 @@ export default function LeadsPage() {
                                                 d.setHours(17, 0, 0, 0);
                                                 setFollowUpDate(format(d, "yyyy-MM-dd'T'HH:mm"));
                                             }}
-                                            className="text-[10px] py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 font-bold transition-colors"
+                                            className="text-[10px] py-2 bg-[#00a651]/10 hover:bg-[#00a651]/20 rounded-lg text-[#00a651] font-bold transition-colors"
                                         >
                                             LATER TODAY
                                         </button>
@@ -981,10 +1031,70 @@ export default function LeadsPage() {
                                         type="datetime-local"
                                         value={followUpDate}
                                         onChange={(e) => setFollowUpDate(e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 text-gray-900 bg-white"
+                                        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 text-gray-900 bg-white"
                                     />
                                 </div>
                             )}
+
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Loan Type</label>
+                                <div className="relative" ref={loanTypeDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLoanTypeDropdownOpen(!isLoanTypeDropdownOpen)}
+                                        className="w-full flex items-center justify-between border border-gray-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 text-gray-900 bg-white transition-all hover:border-gray-300"
+                                    >
+                                        <span className="truncate">
+                                            {editLoanTypeId ? (loanTypes.find(lt => lt.id === editLoanTypeId)?.name || 'Select Loan Type') : 'Select Loan Type'}
+                                        </span>
+                                        <ChevronDown className={clsx("h-4 w-4 text-gray-400 transition-transform duration-200", isLoanTypeDropdownOpen && "rotate-180")} />
+                                    </button>
+
+                                    {isLoanTypeDropdownOpen && (
+                                        <div className="absolute z-[60] mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl py-2 animate-in fade-in zoom-in-95 duration-100 origin-top max-h-40 overflow-y-auto custom-scrollbar">
+                                            <div className="px-3 pb-2 mb-2 border-b border-gray-50">
+                                                <div className="relative">
+                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search loan types..."
+                                                        className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-gray-700 placeholder:text-gray-400"
+                                                        value={editLoanTypeSearch}
+                                                        onChange={(e) => setEditLoanTypeSearch(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="max-h-56 overflow-y-auto custom-scrollbar">
+                                                <button
+                                                    type="button"
+                                                    className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${!editLoanTypeId ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
+                                                    onClick={() => { setEditLoanTypeId(''); setIsLoanTypeDropdownOpen(false); }}
+                                                >
+                                                    None / Select
+                                                </button>
+                                                {loanTypes.filter(lt => lt.name.toLowerCase().includes(editLoanTypeSearch.toLowerCase())).map((lt) => (
+                                                    <button
+                                                        key={lt.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditLoanTypeId(lt.id);
+                                                            setIsLoanTypeDropdownOpen(false);
+                                                        }}
+                                                        className={clsx(
+                                                            "w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between",
+                                                            editLoanTypeId === lt.id ? "text-primary font-black bg-primary/5" : "text-gray-600 font-bold hover:bg-gray-50"
+                                                        )}
+                                                    >
+                                                        <span>{lt.name}</span>
+                                                        {editLoanTypeId === lt.id && <Check className="h-3 w-3" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
                             <div>
                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Interaction Notes</label>
@@ -993,7 +1103,7 @@ export default function LeadsPage() {
                                     placeholder="Add details about the conversation..."
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    className="w-full border border-gray-200 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none text-gray-900 placeholder:text-gray-400 bg-white"
+                                    className="w-full border border-gray-200 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00a651]/20 resize-none text-gray-900 placeholder:text-gray-400 bg-white"
                                 />
                             </div>
                         </div>
@@ -1006,7 +1116,7 @@ export default function LeadsPage() {
                             </button>
                             <button
                                 onClick={handleUpdateStatus}
-                                className="px-8 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 shadow-lg shadow-indigo-100 active:scale-95 transition-all"
+                                className="px-8 py-2 bg-[#00a651] text-white rounded-xl font-bold text-sm hover:bg-[#008d45] shadow-lg shadow-green-100 active:scale-95 transition-all"
                             >
                                 Save Changes
                             </button>
@@ -1049,19 +1159,3 @@ export default function LeadsPage() {
         </div>
     );
 }
-
-// Additional missing icons
-const FileSpreadsheet = ({ className }: { className: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-        <polyline points="14 2 14 8 20 8" />
-        <path d="M8 13h2" />
-        <path d="M8 17h2" />
-        <path d="M10 13h2" />
-        <path d="M10 17h2" />
-        <path d="M12 13h2" />
-        <path d="M12 17h2" />
-        <path d="M14 13h2" />
-        <path d="M14 17h2" />
-    </svg>
-);

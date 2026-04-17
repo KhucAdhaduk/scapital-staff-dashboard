@@ -158,7 +158,7 @@ export default function CallsPage() {
 
 
     const statusOptions = [
-        'NEW', 'CONTACTED', 'ASSIGNED', 'FOLLOW_UP', 'NOT_INTERESTED', 'NOT_ANSWERED', 'WRONG_NUMBER', 'INVALID', 'SERVICE_NOT_NEEDED', 'COMPLETED', 'CLOSED', 'RECALL'
+        'NEW', 'FOLLOW_UP', 'COMPLETED', 'NOT_INTERESTED', 'NO_ANSWER', 'CLOSED', 'INVALID_WRONG', 'CALL_SUCCESS', 'RECALL'
     ];
 
     const totalPages = Math.ceil(total / limit);
@@ -267,7 +267,7 @@ export default function CallsPage() {
                                 <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isStatusDropdownOpen ? 'rotate-180' : 'opacity-40'}`} />
                             </button>
                             {isStatusDropdownOpen && (
-                                <div className="absolute top-full mt-2 left-0 w-full min-w-[200px] bg-white border border-gray-100 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="absolute top-full mt-2 left-0 w-full min-w-[200px] bg-white border border-gray-100 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
                                     <button
                                         className={`w-full text-left px-4 py-2.5 text-xs hover:bg-gray-50 transition-colors ${statusFilter === 'all' ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
                                         onClick={() => { setStatusFilter('all'); setIsStatusDropdownOpen(false); setPage(1); }}
@@ -435,8 +435,8 @@ export default function CallsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${call.callType === 'INCOMING' ? 'text-blue-600' :
-                                                    call.callType === 'MISSED' ? 'text-red-500' :
-                                                        'text-purple-600'
+                                                call.callType === 'MISSED' ? 'text-red-500' :
+                                                    'text-purple-600'
                                                 }`}>
                                                 {call.callType === 'INCOMING' ? <ArrowDownLeft className="h-3 w-3" /> :
                                                     call.callType === 'MISSED' ? <PhoneMissed className="h-3 w-3" /> :
@@ -481,7 +481,7 @@ export default function CallsPage() {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="px-2 space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
+                                                    <div className="px-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
                                                         {!agentEditSearch && (
                                                             <button
                                                                 className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all duration-200 group ${!call.caller?.id && !call.admin?.id
