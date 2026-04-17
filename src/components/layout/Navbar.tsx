@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, LogOut } from 'lucide-react';
+import { Menu, LogOut, Building } from 'lucide-react';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
@@ -44,7 +44,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
     return (
         <>
-            <header className="flex h-16 items-center justify-end border-b bg-white px-4 shadow-sm lg:px-8">
+            <header className="flex h-20 items-center justify-end border-b bg-white px-4 shadow-sm lg:px-8">
                 <button
                     onClick={onMenuClick}
                     className="rounded-md p-2 text-gray-500 hover:bg-gray-100 lg:hidden"
@@ -53,6 +53,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                 </button>
 
                 <div className="flex w-full justify-end lg:w-auto">
+
                     <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -71,6 +72,12 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                                 <div className="px-4 py-2 border-b">
                                     <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                                     <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                    {user?.branchName && (
+                                        <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/5 px-2 py-1 rounded-md border border-primary/10">
+                                            <Building size={10} />
+                                            {user.branchName}
+                                        </div>
+                                    )}
                                 </div>
                                 <button
                                     onClick={handleLogoutClick}

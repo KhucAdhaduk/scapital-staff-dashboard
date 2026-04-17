@@ -189,6 +189,12 @@ export default function LeadsPage() {
             const err = error as { response?: { data?: { message?: string } } };
             const msg = err.response?.data?.message || 'Failed to update lead';
             toast.error(typeof msg === 'string' ? msg : 'Failed to update lead');
+            
+            // If the lead was assigned to someone else, hide it by refreshing
+            if (msg === 'This lead is already assigned to another mobile user' || msg === 'Forbidden') {
+                setIsStatusModalOpen(false);
+                fetchLeads();
+            }
         }
     };
 
@@ -218,9 +224,16 @@ export default function LeadsPage() {
                 ...fullLead.lead,
                 callLogs: fullLead.calllogs
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to fetch lead details:', error);
-            toast.error('Failed to load lead history');
+            const err = error as { response?: { data?: { message?: string } } };
+            const msg = err.response?.data?.message || 'Failed to load lead history';
+            toast.error(typeof msg === 'string' ? msg : 'Failed to load lead history');
+            
+            if (msg === 'This lead is already assigned to another mobile user' || msg === 'Forbidden') {
+                setIsViewModalOpen(false);
+                fetchLeads();
+            }
         }
     };
 

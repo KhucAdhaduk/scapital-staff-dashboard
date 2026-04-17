@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight, PhoneForwarded, UserCheck, FileText, Building } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
 import { useRouter } from 'next/navigation';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
@@ -20,6 +20,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, isCollapsed, toggleCollapse }: SidebarProps) {
     const pathname = usePathname();
     const dispatch = useAppDispatch();
+    const { user } = useAppSelector((state) => state.auth);
     const router = useRouter();
 
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -60,13 +61,16 @@ export function Sidebar({ isOpen, onClose, isCollapsed, toggleCollapse }: Sideba
                     isCollapsed ? 'w-20' : 'w-64'
                 )}
             >
-                <div className={clsx("flex h-16 items-center border-b transition-all flex-shrink-0", isCollapsed ? "justify-center px-0" : "justify-between px-6")}>
-                    {!isCollapsed && <h1 className="text-2xl font-bold text-primary truncate">Scapital Staff</h1>}
-                    {isCollapsed && <span className="text-2xl font-bold text-primary">AP</span>}
+                <div className={clsx("flex h-20 flex-col justify-center border-b transition-all flex-shrink-0", isCollapsed ? "px-0 items-center" : "px-6")}>
+                    {!isCollapsed && (
+                        <>
+                            {user?.branchName && (
+                                <h1 className="text-xl font-bold text-primary truncate">{user.branchName} Staff</h1>
+                            )}
+                        </>
+                    )}
 
-                    <button onClick={toggleCollapse} className={clsx("hidden lg:block text-gray-400 hover:text-gray-600", !isCollapsed && "ml-auto")}>
-                        {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-                    </button>
+
                 </div>
 
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 custom-scrollbar">

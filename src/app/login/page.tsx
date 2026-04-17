@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { login, clearError } from '@/store/slices/authSlice';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Eye, EyeOff } from 'lucide-react';
+import { Suspense } from 'react';
 
-export default function LoginPage() {
+function LoginContent() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,11 @@ export default function LoginPage() {
     const dispatch = useAppDispatch();
     const { loading, error, isAuthenticated } = useAppSelector((state) => state.auth);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    
+    // Determine dynamic title
+    const branchName = searchParams.get('branch');
+    const displayTitle = branchName ? `${branchName} Staff` : 'Admin Login';
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -41,7 +47,7 @@ export default function LoginPage() {
         <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold text-primary">Admin Login</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-primary">{displayTitle}</CardTitle>
                     <p className="text-sm text-gray-500">
                         Enter your credentials to access the dashboard
                     </p>
@@ -52,7 +58,7 @@ export default function LoginPage() {
                             <Input
                                 label="Email"
                                 type="email"
-                                placeholder="admin@example.com"
+                                placeholder="email@address.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -93,12 +99,21 @@ export default function LoginPage() {
                             Login
                         </Button>
 
-                        <div className="text-center text-xs text-gray-400 mt-4">
-                            Demo: admin@example.com / password
-                        </div>
                     </form>
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }
