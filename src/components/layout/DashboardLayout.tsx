@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, loading, isAuthChecked, router]);
 
-    const [isCollapsed, setIsCollapsed] = useState(false);
+
 
     if (!isAuthChecked || loading) {
         return (
@@ -47,8 +47,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
-                isCollapsed={isCollapsed}
-                toggleCollapse={() => setIsCollapsed(!isCollapsed)}
+                isCollapsed={false}
             />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Navbar onMenuClick={() => setSidebarOpen(true)} />
