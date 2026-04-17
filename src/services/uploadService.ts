@@ -1,21 +1,26 @@
-import axios from '@/utils/axios';
+import axios from "@/utils/axios";
 
 export interface UploadResponse {
   urls: string[];
 }
 
 export const uploadService = {
-  uploadFile: async (file: File, onProgress?: (progress: number) => void): Promise<string> => {
+  uploadFile: async (
+    file: File,
+    onProgress?: (progress: number) => void,
+  ): Promise<string> => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
-    const response = await axios.post<UploadResponse>('/upload', formData, {
+    const response = await axios.post<UploadResponse>("v1/upload", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           if (onProgress) {
             onProgress(percentCompleted);
           }

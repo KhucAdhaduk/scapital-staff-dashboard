@@ -12,7 +12,7 @@ export const callService = {
     page?: number;
     limit?: number;
   }) => {
-    const response = await axios.get<{ data: CallLog[]; total: number; page: number; limit: number }>('calls', { params });
+    const response = await axios.get<{ data: CallLog[]; total: number; page: number; limit: number }>('v1/calls', { params });
     return response.data;
   },
   exportCallLogs: async (params?: {
@@ -22,7 +22,7 @@ export const callService = {
     search?: string;
     status?: string;
   }) => {
-    const response = await axios.get('calls/export', { 
+    const response = await axios.get('v1/calls/export', { 
       params, 
       responseType: 'blob' 
     });
@@ -48,7 +48,7 @@ export const callService = {
     document.body.removeChild(a);
   },
   updateCallLogAgent: async (id: string, callerId: string) => {
-    const response = await axios.patch<CallLog>(`calls/${id}`, { callerId });
+    const response = await axios.patch<CallLog>(`v1/calls/${id}`, { callerId });
     return response.data;
   },
 };
