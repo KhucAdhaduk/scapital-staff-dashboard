@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  userType: string;
   branchId?: string;
   branchName?: string;
 }

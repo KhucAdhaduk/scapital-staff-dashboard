@@ -12,16 +12,53 @@ export interface Lead {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   source: string | null;
   notes: string | null;
+  statusRemark: string | null;
   nextFollowUpAt: string | null;
   lastCallAt: string | null;
+  profile: string | null;
+  cibilStatus: string | null;
+  cibilRemark: string | null;
   createdAt: string;
   updatedAt: string;
   assignedToId: string | null;
-  loanTypeId: string | null;
-  loanType?: LoanType;
+  loanType?: string;
+  customLoanType?: string | null;
+  loanTypeId?: string | null;
+  assignedLoanType?: LoanType;
   assignedTo?: { id: string; name: string; email: string };
+  applicationForm?: { id: string } | null;
   callLogs?: CallLog[];
   _count?: { callLogs: number };
+}
+
+export interface ApplicationForm {
+  id: string;
+  leadId: string;
+  name: string;
+  phoneNumber: string;
+  email?: string | null;
+  motherName?: string | null;
+  dob?: string | null;
+  companyName?: string | null;
+  fileNumber?: string | null;
+  addresses?: {
+    current: string;
+    permanent: string;
+    office: string;
+    property: string;
+  } | null;
+  financials?: {
+    netSalaryInr: number;
+    loanAmountInr: number;
+    obligationInr: number;
+  } | null;
+  product?: string | null;
+  residentType?: string | null;
+  leadBy?: string | null;
+  references?: Array<{ name: string; phoneNumber: string }> | null;
+  coApplicants?: Array<{ name: string; phoneNumber: string; email?: string; motherName?: string }> | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CallLog {
@@ -70,9 +107,15 @@ export const leadService = {
     assignedToId?: string | null;
     loanTypeId?: string | null;
     notes?: string;
+    statusRemark?: string;
     nextFollowUpAt?: string;
     priority?: string;
     source?: string;
+    profile?: string;
+    cibilStatus?: string;
+    cibilRemark?: string;
+    loanType?: string;
+    customLoanType?: string;
     userId?: string;
   }) => {
     const response = await axios.post(`v1/leads/${id}/call-result`, data);
@@ -89,8 +132,37 @@ export const leadService = {
     return response.data;
   },
 
+  createManual: async (data: {
+    phoneNumber: string;
+    name?: string;
+    date?: string;
+    time?: string;
+    loanType?: string;
+    customLoanType?: string;
+  }) => {
+    const response = await axios.post<Lead>('v1/leads/manual', data);
+    return response.data;
+  },
+
   getStats: async () => {
     const response = await axios.get<LeadStats>('v1/leads/stats');
+    return response.data;
+  },
+
+  getApplicationForm: async (leadId: string) => {
+    const response = await axios.get<ApplicationForm>(`v1/leads/${leadId}/application-form`);
+    return response.data;
+  },
+
+  saveApplicationForm: async (leadId: string, data: Partial<ApplicationForm>) => {
+    const response = await axios.post<ApplicationForm>(`v1/leads/${leadId}/application-form`, data);
+    return response.data;
+  },
+
+  downloadApplicationPdf: async (leadId: string) => {
+    const response = await axios.get(`v1/leads/${leadId}/application-form/pdf`, {
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

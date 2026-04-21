@@ -4,7 +4,7 @@ import { callService } from '@/services/callService';
 import { CallLog, LeadStats, leadService } from '@/services/leadService';
 import { userService } from '@/services/userService';
 import { format } from 'date-fns';
-import { ArrowDownLeft, ArrowUpRight, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, Filter, Phone, PhoneMissed, PhoneOutgoing, Search, User, UserPlus } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, Filter, Phone, PhoneMissed, PhoneOutgoing, Plus, Search, User, UserPlus, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
@@ -25,6 +25,14 @@ export default function CallsPage() {
     const [agentEditSearch, setAgentEditSearch] = useState('');
     const [updatingAgent, setUpdatingAgent] = useState<string | null>(null);
     const [activeRowDropdown, setActiveRowDropdown] = useState<string | null>(null);
+
+    // Create Lead Modal State
+    const [isCreateLeadModalOpen, setIsCreateLeadModalOpen] = useState(false);
+    const [createLeadPhone, setCreateLeadPhone] = useState('');
+    const [createLeadName, setCreateLeadName] = useState('');
+    const [createLeadDate, setCreateLeadDate] = useState('');
+    const [createLeadTime, setCreateLeadTime] = useState('');
+    const [isCreatingLead, setIsCreatingLead] = useState(false);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -157,8 +165,44 @@ export default function CallsPage() {
 
 
 
+    const openCreateLeadModal = () => {
+        const now = new Date();
+        setCreateLeadPhone('');
+        setCreateLeadName('');
+        setCreateLeadDate(now.toISOString().split('T')[0]);
+        setCreateLeadTime(now.toTimeString().slice(0, 5));
+        setIsCreateLeadModalOpen(true);
+    };
+
+    const handleCreateLead = async () => {
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(createLeadPhone)) {
+            toast.error('Please enter a valid 10-digit phone number');
+            return;
+        }
+        try {
+            setIsCreatingLead(true);
+            await leadService.createManual({
+                phoneNumber: createLeadPhone,
+                name: createLeadName || undefined,
+                date: createLeadDate || undefined,
+                time: createLeadTime || undefined,
+            });
+            setIsCreateLeadModalOpen(false);
+            toast.success('Lead created successfully!');
+            fetchCalls(); // Refresh the list
+        } catch (error: unknown) {
+            console.error('Failed to create lead:', error);
+            const err = error as { response?: { data?: { message?: string } } };
+            const msg = err.response?.data?.message || 'Failed to create lead';
+            toast.error(typeof msg === 'string' ? msg : 'Failed to create lead');
+        } finally {
+            setIsCreatingLead(false);
+        }
+    };
+
     const statusOptions = [
-        'NEW', 'FOLLOW_UP', 'COMPLETED', 'NOT_INTERESTED', 'NO_ANSWER', 'CLOSED', 'INVALID_WRONG', 'CALL_SUCCESS', 'RECALL'
+        'NEW', 'FOLLOW_UP', 'COMPLETED', 'NOT_INTERESTED', 'NO_ANSWER', 'CLOSED', 'INVALID_WRONG', 'INTERESTED', 'RECALL', 'LOGIN', 'SANCTIONED', 'DISBURSEMENT', 'REJECT', 'DORMANT'
     ];
 
     const totalPages = Math.ceil(total / limit);
@@ -167,6 +211,13 @@ export default function CallsPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900">Call Leads</h1>
+                <button
+                    onClick={openCreateLeadModal}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none"
+                >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Lead</span>
+                </button>
             </div>
 
             {/* Stats Summary */}
@@ -357,9 +408,9 @@ export default function CallsPage() {
                     <div className="flex-none items-end">
                         <button
                             onClick={handleExport}
-                            className="flex items-center justify-center gap-2.5 px-6 py-3 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none h-[46px]"
+                            className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none"
                         >
-                            <FileSpreadsheet className="h-4 w-4" />
+                            <FileSpreadsheet className="h-3 w-3" />
                             <span>Export Results</span>
                         </button>
                     </div>
@@ -421,13 +472,22 @@ export default function CallsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             {call.lead?.status ? (
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${call.lead.status === 'COMPLETED' ? 'bg-green-50 text-green-600' :
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${call.lead.status === 'COMPLETED' ? 'bg-slate-50 text-slate-600' :
                                                     call.lead.status === 'FOLLOW_UP' ? 'bg-amber-50 text-amber-600' :
                                                         call.lead.status === 'NEW' ? 'bg-blue-50 text-blue-600' :
                                                             call.lead.status === 'RECALL' ? 'bg-purple-50 text-purple-600' :
                                                                 'bg-gray-50 text-gray-500'
                                                     }`}>
-                                                    {call.lead.status}
+                                                    {call.lead.status === 'NEW' ? 'New' :
+                                                        call.lead.status === 'FOLLOW_UP' ? 'follow up' :
+                                                            call.lead.status === 'COMPLETED' ? 'call connected' :
+                                                                call.lead.status === 'NOT_INTERESTED' ? 'not interested' :
+                                                                    call.lead.status === 'NO_ANSWER' ? 'no answer' :
+                                                                        call.lead.status === 'CLOSED' ? 'closed' :
+                                                                            call.lead.status === 'INVALID_WRONG' ? 'invalid/wrong' :
+                                                                                call.lead.status === 'INTERESTED' ? 'Interested' :
+                                                                                    call.lead.status === 'RECALL' ? 'Recall' :
+                                                                                        call.lead.status.replace('_', ' ')}
                                                 </span>
                                             ) : (
                                                 <span className="text-[10px] text-gray-300 italic">Not Linked</span>
@@ -557,6 +617,108 @@ export default function CallsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Create Lead Modal */}
+            {isCreateLeadModalOpen && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-green-50 to-white">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
+                                    <Plus className="h-5 w-5 text-green-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-black text-gray-900">Create New Lead</h3>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Add a lead manually</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsCreateLeadModalOpen(false)}
+                                className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                            >
+                                <X className="h-4 w-4 text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="px-6 py-5 space-y-4">
+                            {/* Phone Number */}
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Phone Number *</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Enter 10-digit phone number"
+                                        value={createLeadPhone}
+                                        onChange={(e) => setCreateLeadPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 text-gray-900 bg-white transition-all"
+                                        maxLength={10}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Name */}
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Name</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Contact name (optional)"
+                                        value={createLeadName}
+                                        onChange={(e) => setCreateLeadName(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 text-gray-900 bg-white transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Date & Time */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <input
+                                            type="date"
+                                            value={createLeadDate}
+                                            onChange={(e) => setCreateLeadDate(e.target.value)}
+                                            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 text-gray-900 bg-white transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Time</label>
+                                    <input
+                                        type="time"
+                                        value={createLeadTime}
+                                        onChange={(e) => setCreateLeadTime(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 text-gray-900 bg-white transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center gap-3">
+                            <button
+                                onClick={() => setIsCreateLeadModalOpen(false)}
+                                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateLead}
+                                disabled={isCreatingLead || !createLeadPhone}
+                                className="flex-1 px-4 py-2.5 bg-[#00a651] text-white rounded-xl font-bold text-sm hover:bg-[#008d45] shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {isCreatingLead ? 'Creating...' : 'Create Lead'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
