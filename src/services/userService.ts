@@ -6,6 +6,7 @@ export interface User {
   username: string;
   mobileNumber: string | null;
   role: string;
+  isEnabled?: boolean;
   createdAt: string;
 }
 
@@ -32,6 +33,11 @@ export const userService = {
 
   deleteUser: async (id: string) => {
     const response = await axios.delete(`v1/auth/users/${id}`);
+    return response.data;
+  },
+
+  toggleStatus: async (id: string, isEnabled: boolean) => {
+    const response = await axios.patch(`v1/auth/users/${id}/status`, { isEnabled });
     return response.data;
   },
 };

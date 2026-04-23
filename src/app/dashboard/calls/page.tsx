@@ -205,6 +205,17 @@ export default function CallsPage() {
         'NEW', 'FOLLOW_UP', 'COMPLETED', 'NOT_INTERESTED', 'NO_ANSWER', 'CLOSED', 'INVALID_WRONG', 'INTERESTED', 'RECALL', 'LOGIN', 'SANCTIONED', 'DISBURSEMENT', 'REJECT', 'DORMANT'
     ];
 
+    const statusLabel = (s: string) => {
+        const labels: Record<string, string> = {
+            COMPLETED: 'Call Connected',
+            FOLLOW_UP: 'Follow Up',
+            NOT_INTERESTED: 'Not Interested',
+            NO_ANSWER: 'No Answer',
+            INVALID_WRONG: 'Invalid/Wrong',
+        };
+        return labels[s] || s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, ' ');
+    };
+
     const totalPages = Math.ceil(total / limit);
 
     return (
@@ -314,7 +325,7 @@ export default function CallsPage() {
                                     }`}
                                 onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
                             >
-                                <span className="truncate">{statusFilter === 'all' ? 'All Leads' : statusFilter}</span>
+                                <span className="truncate">{statusFilter === 'all' ? 'All Leads' : statusLabel(statusFilter)}</span>
                                 <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isStatusDropdownOpen ? 'rotate-180' : 'opacity-40'}`} />
                             </button>
                             {isStatusDropdownOpen && (
@@ -332,7 +343,7 @@ export default function CallsPage() {
                                             className={`w-full text-left px-4 py-2.5 text-xs hover:bg-gray-50 transition-colors ${statusFilter === opt ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
                                             onClick={() => { setStatusFilter(opt); setIsStatusDropdownOpen(false); setPage(1); }}
                                         >
-                                            {opt}
+                                            {statusLabel(opt)}
                                         </button>
                                     ))}
                                 </div>
@@ -452,7 +463,7 @@ export default function CallsPage() {
                                 calls.map((call) => (
                                     <tr key={call.id} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="px-6 py-4 text-xs font-mono text-gray-500">
-                                            {call.lead?.serialId ? `LD-${String(call.lead.serialId).padStart(5, '0')}` : '----'}
+                                            {call.lead?.leadId || '----'}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">

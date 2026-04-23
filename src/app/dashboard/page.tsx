@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
     const cards = [
         { title: 'Total Calls', value: stats.totalCalls, icon: Phone, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { title: 'Completed Leads', value: stats.completedLeads, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
+        { title: 'Call Connected', value: stats.completedLeads, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
         { title: 'Follow-up Needed', value: stats.followUpLeads, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
         { title: 'Closed Leads', value: stats.closedLeads, icon: XCircle, color: 'text-gray-600', bg: 'bg-gray-50' },
     ];
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="flex justify-between items-center text-sm pt-2">
-                            <span className="text-gray-500">Successfully Completed</span>
+                            <span className="text-gray-500">Call Connected</span>
                             <span className="font-bold text-gray-900">{stats.completedLeads}</span>
                         </div>
                         <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">

@@ -1,5 +1,7 @@
 'use client';
 
+import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 import { Lead, leadService } from '@/services/leadService';
 import { LoanType, loanTypeService } from '@/services/loanTypeService';
 import { useAppSelector } from '@/store/hooks';
@@ -7,7 +9,7 @@ import axios from '@/utils/axios';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
-import { Calendar, Check, ChevronDown, Download, Edit2, Eye, FileSpreadsheet, FileText, Info, Phone, Plus, Search, Trash2, User, UserPlus, X } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, ChevronDown, Download, Edit2, Eye, FileSpreadsheet, FileText, Info, Phone, Plus, Search, Trash2, User, UserPlus, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -227,7 +229,7 @@ export default function LeadsPage() {
             if (newStatus === 'REJECT' && reminderDate) {
                 const dateTime = reminderTime ? `${reminderDate}T${reminderTime}:00` : `${reminderDate}T00:00:00`;
                 updateData.nextFollowUpAt = new Date(dateTime).toISOString();
-            } else if (newStatus === 'FOLLOW_UP' || newStatus === 'RECALL') {
+            } else if (newStatus === 'FOLLOW_UP') {
                 updateData.nextFollowUpAt = followUpDate ? new Date(followUpDate).toISOString() : null;
             }
 
@@ -501,392 +503,419 @@ export default function LeadsPage() {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar">
-                {STATUS_TABS.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={clsx(
-                            'px-6 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap cursor-pointer',
-                            activeTab === tab.id
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        )}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+            {/* Main Tabs/Sidebar Layout */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden min-h-[600px]">
+                <div className="flex flex-col md:flex-row h-full md:h-[calc(100vh-280px)] overflow-hidden">
+                    {/* Sidebar Status Filter */}
+                    <div className="hidden md:flex w-72 shrink-0 border-r border-slate-50 bg-slate-50/20 flex-col h-full">
+                        <div className="p-8 border-b border-slate-50 bg-white/50 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-1 bg-primary rounded-full" />
+                                <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-[0.2em]">Filter Results</h4>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto no-scrollbar py-6 px-4 space-y-1.5 custom-scrollbar">
+                            {STATUS_TABS.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={clsx(
+                                        "w-full flex items-center justify-between px-6 py-4.5 text-[12px] font-black uppercase tracking-wider rounded-2xl transition-all duration-300",
+                                        activeTab === tab.id
+                                            ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
+                                            : "text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-md hover:shadow-slate-200/50"
+                                    )}
+                                >
+                                    <span>{tab.label}</span>
+                                    {activeTab === tab.id && (
+                                        <div className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,1)]" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-            {/* Search & Actions Area */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex flex-wrap gap-4 items-end">
-
-                    {/* Search - Primary Action */}
-                    <div className="flex flex-col gap-1.5 flex-grow min-w-[280px]">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Search Database</label>
-                        <div className="relative group/search">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within/search:text-primary transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search by name or phone..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/10 focus:bg-white focus:border-primary/20 transition-all text-sm text-gray-900 placeholder:text-gray-400 font-medium"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                    {/* Main Content Area */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-white h-full">
+                        {/* Mobile Status Dropdown */}
+                        <div className="md:hidden p-6 border-b border-slate-100 bg-slate-50/30">
+                            <Select
+                                label="FILTER BY STATUS"
+                                value={activeTab}
+                                onChange={setActiveTab}
+                                options={STATUS_TABS.map(t => ({ id: t.id, label: t.label.toUpperCase(), value: t.id }))}
                             />
                         </div>
-                    </div>
 
-                    {/* Date Selection */}
-                    <div className="flex flex-col gap-1.5 flex-grow lg:flex-grow-0">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Filter by Date</label>
-                        <div className="flex items-center gap-2.5 bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-2.5 transition-all focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/10 group/date">
-                            <Calendar className="h-4 w-4 text-gray-400 group-focus-within/date:text-primary transition-colors shrink-0" />
-                            <div className="flex items-center gap-1.5">
-                                <input
-                                    type="date"
-                                    className="bg-transparent border-none p-0 text-xs text-gray-800 focus:ring-0 w-[115px] font-bold"
-                                    value={dateRange.start}
-                                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                />
-                                <span className="text-gray-300 text-xs font-black select-none">—</span>
-                                <input
-                                    type="date"
-                                    className="bg-transparent border-none p-0 text-xs text-gray-800 focus:ring-0 w-[115px] font-bold"
-                                    value={dateRange.end}
-                                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                    </div>
+                        {/* Search & Actions Area */}
+                        <div className="p-8 border-b border-slate-50 bg-white/50 backdrop-blur-md shrink-0">
+                            <div className="flex flex-wrap gap-4 items-end">
 
-                    {/* Quick Filters */}
-                    <div className="flex flex-col gap-1.5 flex-grow sm:flex-grow-0 sm:min-w-[180px]" ref={agentDropdownRef}>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Lead Owner</label>
-                        <div className="relative group/agent">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <User className="h-4 w-4 text-gray-400 group-focus-within/agent:text-primary transition-colors" />
-                            </div>
-                            <button
-                                className={`w-full flex items-center justify-between pl-10 pr-3 py-2.5 border rounded-xl text-xs font-black transition-all ${isAgentDropdownOpen ? 'bg-white border-primary shadow-lg shadow-primary/5 text-primary' : 'bg-gray-50/50 border-gray-100 text-gray-600 hover:border-gray-200'
-                                    }`}
-                                onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
-                            >
-                                <span className="truncate">{assignedToFilter === 'all' ? 'All Personnel' : assignedToFilter === 'unassigned' ? 'Unassigned' : users.find(u => u.id === assignedToFilter)?.name || 'Select Agent'}</span>
-                                <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isAgentDropdownOpen ? 'rotate-180' : 'opacity-40'}`} />
-                            </button>
-                            {isAgentDropdownOpen && (
-                                <div className="absolute top-full mt-2 left-0 w-full min-w-[200px] bg-white border border-gray-100 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <div className="px-3 pb-2 mb-2 border-b border-gray-50">
-                                        <div className="relative">
-                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                {/* Search - Primary Action */}
+                                <div className="flex flex-col gap-1.5 flex-grow min-w-[280px]">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Search Database</label>
+                                    <div className="relative group/search">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within/search:text-primary transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search by name or phone..."
+                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/10 focus:bg-white focus:border-primary/20 transition-all text-sm text-gray-900 placeholder:text-gray-400 font-medium"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Date Selection */}
+                                <div className="flex flex-col gap-1.5 flex-grow lg:flex-grow-0">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Filter by Date</label>
+                                    <div className="flex items-center gap-2.5 bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-2.5 transition-all focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/10 group/date">
+                                        <Calendar className="h-4 w-4 text-gray-400 group-focus-within/date:text-primary transition-colors shrink-0" />
+                                        <div className="flex items-center gap-1.5">
                                             <input
-                                                type="text"
-                                                placeholder="Search agents..."
-                                                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-gray-700 placeholder:text-gray-400"
-                                                value={agentFilterSearch}
-                                                onChange={(e) => setAgentFilterSearch(e.target.value)}
-                                                onClick={(e) => e.stopPropagation()}
+                                                type="date"
+                                                className="bg-transparent border-none p-0 text-xs text-gray-800 focus:ring-0 w-[115px] font-bold"
+                                                value={dateRange.start}
+                                                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                            />
+                                            <span className="text-gray-300 text-xs font-black select-none">—</span>
+                                            <input
+                                                type="date"
+                                                className="bg-transparent border-none p-0 text-xs text-gray-800 focus:ring-0 w-[115px] font-bold"
+                                                value={dateRange.end}
+                                                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                                             />
                                         </div>
                                     </div>
-                                    <div className="max-h-56 overflow-y-auto custom-scrollbar">
-                                        {!agentFilterSearch && (
-                                            <>
-                                                <button
-                                                    className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${assignedToFilter === 'all' ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
-                                                    onClick={() => { setAssignedToFilter('all'); setIsAgentDropdownOpen(false); }}
-                                                >
-                                                    All Team Members
-                                                </button>
-                                                <button
-                                                    className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${assignedToFilter === 'unassigned' ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
-                                                    onClick={() => { setAssignedToFilter('unassigned'); setIsAgentDropdownOpen(false); }}
-                                                >
-                                                    Unassigned
-                                                </button>
-                                                <div className="h-px bg-gray-50 my-1 mx-3" />
-                                            </>
+                                </div>
+
+                                {/* Quick Filters */}
+                                <div className="flex flex-col gap-1.5 flex-grow sm:flex-grow-0 sm:min-w-[180px]" ref={agentDropdownRef}>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Lead Owner</label>
+                                    <div className="relative group/agent">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <User className="h-4 w-4 text-gray-400 group-focus-within/agent:text-primary transition-colors" />
+                                        </div>
+                                        <button
+                                            className={`w-full flex items-center justify-between pl-10 pr-3 py-2.5 border rounded-xl text-xs font-black transition-all ${isAgentDropdownOpen ? 'bg-white border-primary shadow-lg shadow-primary/5 text-primary' : 'bg-gray-50/50 border-gray-100 text-gray-600 hover:border-gray-200'
+                                                }`}
+                                            onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
+                                        >
+                                            <span className="truncate">{assignedToFilter === 'all' ? 'All Personnel' : assignedToFilter === 'unassigned' ? 'Unassigned' : users.find(u => u.id === assignedToFilter)?.name || 'Select Agent'}</span>
+                                            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isAgentDropdownOpen ? 'rotate-180' : 'opacity-40'}`} />
+                                        </button>
+                                        {isAgentDropdownOpen && (
+                                            <div className="absolute top-full mt-2 left-0 w-full min-w-[200px] bg-white border border-gray-100 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="px-3 pb-2 mb-2 border-b border-gray-50">
+                                                    <div className="relative">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search agents..."
+                                                            className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-gray-700 placeholder:text-gray-400"
+                                                            value={agentFilterSearch}
+                                                            onChange={(e) => setAgentFilterSearch(e.target.value)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="max-h-56 overflow-y-auto custom-scrollbar">
+                                                    {!agentFilterSearch && (
+                                                        <>
+                                                            <button
+                                                                className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${assignedToFilter === 'all' ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
+                                                                onClick={() => { setAssignedToFilter('all'); setIsAgentDropdownOpen(false); }}
+                                                            >
+                                                                All Team Members
+                                                            </button>
+                                                            <button
+                                                                className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${assignedToFilter === 'unassigned' ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
+                                                                onClick={() => { setAssignedToFilter('unassigned'); setIsAgentDropdownOpen(false); }}
+                                                            >
+                                                                Unassigned
+                                                            </button>
+                                                            <div className="h-px bg-gray-50 my-1 mx-3" />
+                                                        </>
+                                                    )}
+                                                    {users.filter(u => u.name.toLowerCase().includes(agentFilterSearch.toLowerCase())).map(u => (
+                                                        <button
+                                                            key={u.id}
+                                                            className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${assignedToFilter === u.id ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
+                                                            onClick={() => { setAssignedToFilter(u.id); setIsAgentDropdownOpen(false); }}
+                                                        >
+                                                            {u.name}
+                                                            {assignedToFilter === u.id && <Check className="h-3 w-3" />}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
-                                        {users.filter(u => u.name.toLowerCase().includes(agentFilterSearch.toLowerCase())).map(u => (
-                                            <button
-                                                key={u.id}
-                                                className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between ${assignedToFilter === u.id ? 'text-primary font-black bg-primary/5' : 'text-gray-600 font-bold'}`}
-                                                onClick={() => { setAssignedToFilter(u.id); setIsAgentDropdownOpen(false); }}
-                                            >
-                                                {u.name}
-                                                {assignedToFilter === u.id && <Check className="h-3 w-3" />}
-                                            </button>
-                                        ))}
                                     </div>
                                 </div>
-                            )}
+
+                                {/* Export - Primary Action */}
+                                <div className="flex-none items-end pb-0.5">
+                                    <button
+                                        onClick={handleExport}
+                                        className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none"
+                                    >
+                                        <FileSpreadsheet className="h-3 w-3" />
+                                        <span>Export Results</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Export - Primary Action */}
-                    <div className="flex-none items-end">
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none"
-                        >
-                            <FileSpreadsheet className="h-3 w-3" />
-                            <span>Export Results</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Leads Table Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                <div className="overflow-x-auto min-h-[300px] pb-[160px]">
-                    <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
-                        <thead className="bg-gray-50/50 border-b border-gray-100">
-                            <tr>
-                                <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead ID</th>
-                                <th className="w-[17%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead Details</th>
-                                <th className="w-[11%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Loan Type</th>
-                                <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                                <th className="w-[14%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Call Time & Date</th>
-                                <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Next Follow-up</th>
-                                <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assigned Agent</th>
-                                <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={7} className="px-6 py-8"><div className="h-4 bg-gray-100 rounded w-full" /></td>
+                        {/* Leads Table Container */}
+                        <div className="flex-1 overflow-auto custom-scrollbar">
+                            <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
+                                <thead className="bg-gray-50/50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="w-[8%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead ID</th>
+                                        <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lead Details</th>
+                                        <th className="w-[11%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Loan Type</th>
+                                        <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                                        <th className="w-[14%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Call Time & Date</th>
+                                        <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Next Follow-up</th>
+                                        <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assigned Agent</th>
+                                        <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
                                     </tr>
-                                ))
-                            ) : filteredLeads.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-20 text-center text-gray-400">
-                                        <Info className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                                        <p className="text-sm font-medium">No leads found matching your criteria</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredLeads.map(lead => (
-                                    <tr key={lead.id} className="group hover:bg-indigo-50/30 transition-colors duration-150">
-                                        <td className="px-6 py-4 text-xs font-mono text-gray-500">
-                                            {lead.leadId || '----'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                                                    {lead.name || 'Anonymous Lead'}
-                                                </span>
-                                                <div className="flex items-center gap-1.5 mt-0.5">
-                                                    <Phone className="h-3 w-3 text-gray-400" />
-                                                    <span className="text-xs text-gray-500 font-medium">{formatPhoneNumber(lead.phoneNumber)}</span>
-                                                    {lead.profile && (
-                                                        <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
-                                                            {lead.profile}
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {loading ? (
+                                        Array.from({ length: 5 }).map((_, i) => (
+                                            <tr key={i} className="animate-pulse">
+                                                <td colSpan={8} className="px-6 py-8"><div className="h-4 bg-gray-100 rounded w-full" /></td>
+                                            </tr>
+                                        ))
+                                    ) : filteredLeads.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={8} className="px-6 py-20 text-center text-gray-400">
+                                                <Info className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                                                <p className="text-sm font-medium">No leads found matching your criteria</p>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredLeads.map(lead => (
+                                            <tr key={lead.id} className="group hover:bg-indigo-50/30 transition-colors duration-150">
+                                                <td className="px-6 py-4 text-xs font-mono text-gray-500">
+                                                    {lead.leadId || '----'}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                                            {lead.name || 'Anonymous Lead'}
                                                         </span>
-                                                    )}
-                                                    {lead.source && (
-                                                        <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
-                                                            {lead.source}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {lead.loanType !== 'Other' ? (
-                                                <span className="whitespace-nowrap inline-block text-xs font-bold text-[#00a651] bg-[#00a651]/10 px-2.5 py-1 rounded-lg border border-[#00a651]/20">
-                                                    {lead.loanType}
-                                                </span>
-                                            ) : (
-                                                <span className="whitespace-nowrap inline-block text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                                                    Other {lead.customLoanType ? `- ${lead.customLoanType}` : ''}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={clsx(
-                                                "whitespace-nowrap inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                                lead.status === 'NEW' ? 'bg-blue-50 text-blue-600' :
-                                                    lead.status === 'FOLLOW_UP' ? 'bg-amber-50 text-amber-600' :
-                                                        lead.status === 'COMPLETED' ? 'bg-slate-50 text-slate-600' :
-                                                            lead.status === 'NO_ANSWER' ? 'bg-slate-50 text-slate-600' :
-                                                                lead.status === 'INVALID_WRONG' ? 'bg-rose-50 text-rose-600' :
-                                                                    lead.status === 'RECALL' ? 'bg-purple-50 text-purple-600' :
-                                                                        lead.status === 'REJECT' ? 'bg-red-50 text-red-600' :
-                                                                            lead.status === 'DORMANT' ? 'bg-amber-50 text-amber-600' :
-                                                                                lead.status === 'LOGIN' ? 'bg-indigo-50 text-indigo-600' :
-                                                                                    lead.status === 'SANCTIONED' ? 'bg-emerald-50 text-emerald-600' :
-                                                                                        lead.status === 'DISBURSEMENT' ? 'bg-cyan-50 text-cyan-600' :
-                                                                                            'bg-gray-100 text-gray-600'
-                                            )}>
-                                                {lead.status === 'NEW' ? 'New' :
-                                                    lead.status === 'FOLLOW_UP' ? 'Follow Up' :
-                                                        lead.status === 'COMPLETED' ? 'Call Connected' :
-                                                            lead.status === 'NOT_INTERESTED' ? 'Not Interested' :
-                                                                lead.status === 'NO_ANSWER' ? 'No Answer' :
-                                                                    lead.status === 'CLOSED' ? 'Closed' :
-                                                                        lead.status === 'INVALID_WRONG' ? 'Invalid/Wrong' :
-                                                                            lead.status === 'INTERESTED' ? 'Interested' :
-                                                                                lead.status === 'RECALL' ? 'Recall' :
-                                                                                    lead.status === 'LOGIN' ? 'Login' :
-                                                                                        lead.status === 'SANCTIONED' ? 'Sanctioned' :
-                                                                                            lead.status === 'DISBURSEMENT' ? 'Disbursement' :
-                                                                                                lead.status === 'REJECT' ? 'Reject' :
-                                                                                                    lead.status === 'DORMANT' ? 'Dormant' :
-                                                                                                        lead.status.replace('_', ' ')}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-xs text-gray-600">
-                                            {(() => {
-                                                const displayDate = lead.lastCallAt || lead.createdAt;
-                                                if (displayDate) {
-                                                    return (
-                                                        <div className="flex flex-col">
-                                                            <span className="text-gray-900 font-bold">{format(new Date(displayDate), 'MMM d, yyyy')}</span>
-                                                            <span className="text-[10px] text-gray-400 font-medium">at {format(new Date(displayDate), 'hh:mm a')}</span>
-                                                        </div>
-                                                    );
-                                                }
-                                                return <span className="text-gray-300 italic">Never</span>;
-                                            })()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {lead.nextFollowUpAt && (lead.status === 'FOLLOW_UP' || lead.status === 'RECALL') && new Date(lead.nextFollowUpAt).getTime() > Date.now() ? (
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-indigo-600">
-                                                        {format(new Date(lead.nextFollowUpAt), 'MMM d')}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-400 font-medium">
-                                                        at {format(new Date(lead.nextFollowUpAt), 'hh:mm a')}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-300 text-xs">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 relative agent-dropdown-container">
-                                            <div className="flex justify-start w-full max-w-[140px]">
-                                                <button
-                                                    className={`w-full flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border-2 transition-all duration-300 font-bold text-[10px] uppercase tracking-wider ${activeRowDropdown === lead.id
-                                                        ? 'bg-[#00a651]/5 border-[#00a651] text-[#00a651] shadow-sm'
-                                                        : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                                        }`}
-                                                    onClick={() => setActiveRowDropdown(activeRowDropdown === lead.id ? null : lead.id)}
-                                                    disabled={updatingAgent === lead.id}
-                                                >
-                                                    <div className={`flex-none h-1.5 w-1.5 rounded-full ${lead.assignedTo?.id ? 'bg-[#00a651] shadow-[0_0_8px_rgba(0,166,81,0.5)]' : 'bg-gray-300'}`} />
-                                                    <span className="flex-1 truncate text-left">
-                                                        {updatingAgent === lead.id ? '...' : (lead.assignedTo?.name || 'Unassigned')}
-                                                    </span>
-                                                    <ChevronDown className={`flex-none h-3 w-3 transition-transform duration-300 ${activeRowDropdown === lead.id ? 'rotate-180' : 'opacity-40'}`} />
-                                                </button>
-                                            </div>
-
-                                            {activeRowDropdown === lead.id && (
-                                                <div className={`absolute ${filteredLeads.indexOf(lead) > (filteredLeads.length / 2) ? 'bottom-full mb-2' : 'top-full mt-2'} left-6 w-56 bg-white border border-gray-100 rounded-2xl shadow-2xl py-3 z-50 animate-in fade-in zoom-in-95 duration-200 ${filteredLeads.indexOf(lead) > (filteredLeads.length / 2) ? 'origin-bottom-left' : 'origin-top-left'}`}>
-                                                    <div className="px-4 py-2 border-b border-gray-50 mb-2 flex items-center gap-2">
-                                                        <UserPlus className="h-3 w-3 text-primary" />
-                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Select Agent</p>
-                                                    </div>
-                                                    <div className="px-3 pb-2 mb-2 border-b border-gray-50">
-                                                        <div className="relative">
-                                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Search agents..."
-                                                                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-gray-700 placeholder:text-gray-400"
-                                                                value={rowAgentEditSearch}
-                                                                onChange={(e) => setRowAgentEditSearch(e.target.value)}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            />
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            <Phone className="h-3 w-3 text-gray-400" />
+                                                            <span className="text-xs text-gray-500 font-medium">{formatPhoneNumber(lead.phoneNumber)}</span>
+                                                            {lead.profile && (
+                                                                <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                                    {lead.profile}
+                                                                </span>
+                                                            )}
+                                                            {lead.source && (
+                                                                <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                                    {lead.source}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div className="px-2 space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                        {!rowAgentEditSearch && (
-                                                            <button
-                                                                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all duration-200 group ${!lead.assignedTo?.id
-                                                                    ? 'bg-primary/5 text-primary font-bold'
-                                                                    : 'text-gray-600 hover:bg-gray-50 hover:translate-x-1'
-                                                                    }`}
-                                                                onClick={() => handleAgentChange(lead.id, 'unassigned')}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`h-2 w-2 rounded-full transition-all ${!lead.assignedTo?.id ? 'bg-primary scale-110' : 'bg-transparent border border-gray-200 group-hover:border-primary/40'}`} />
-                                                                    <span>Unassigned</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {lead.loanType !== 'Other' ? (
+                                                        <span className="whitespace-nowrap inline-block text-xs font-bold text-[#00a651] bg-[#00a651]/10 px-2.5 py-1 rounded-lg border border-[#00a651]/20">
+                                                            {lead.loanType}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="whitespace-nowrap inline-block text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                                                            Other {lead.customLoanType ? `- ${lead.customLoanType}` : ''}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={clsx(
+                                                        "whitespace-nowrap inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                                        lead.status === 'NEW' ? 'bg-blue-50 text-blue-600' :
+                                                            lead.status === 'FOLLOW_UP' ? 'bg-amber-50 text-amber-600' :
+                                                                lead.status === 'COMPLETED' ? 'bg-slate-50 text-slate-600' :
+                                                                    lead.status === 'NO_ANSWER' ? 'bg-slate-50 text-slate-600' :
+                                                                        lead.status === 'INVALID_WRONG' ? 'bg-rose-50 text-rose-600' :
+                                                                            lead.status === 'RECALL' ? 'bg-purple-50 text-purple-600' :
+                                                                                lead.status === 'REJECT' ? 'bg-red-50 text-red-600' :
+                                                                                    lead.status === 'DORMANT' ? 'bg-amber-50 text-amber-600' :
+                                                                                        lead.status === 'LOGIN' ? 'bg-indigo-50 text-indigo-600' :
+                                                                                            lead.status === 'SANCTIONED' ? 'bg-emerald-50 text-emerald-600' :
+                                                                                                lead.status === 'DISBURSEMENT' ? 'bg-cyan-50 text-cyan-600' :
+                                                                                                    'bg-gray-100 text-gray-600'
+                                                    )}>
+                                                        {lead.status === 'NEW' ? 'New' :
+                                                            lead.status === 'FOLLOW_UP' ? 'Follow Up' :
+                                                                lead.status === 'COMPLETED' ? 'Call Connected' :
+                                                                    lead.status === 'NOT_INTERESTED' ? 'Not Interested' :
+                                                                        lead.status === 'NO_ANSWER' ? 'No Answer' :
+                                                                            lead.status === 'CLOSED' ? 'Closed' :
+                                                                                lead.status === 'INVALID_WRONG' ? 'Invalid/Wrong' :
+                                                                                    lead.status === 'INTERESTED' ? 'Interested' :
+                                                                                        lead.status === 'RECALL' ? 'Recall' :
+                                                                                            lead.status === 'LOGIN' ? 'Login' :
+                                                                                                lead.status === 'SANCTIONED' ? 'Sanctioned' :
+                                                                                                    lead.status === 'DISBURSEMENT' ? 'Disbursement' :
+                                                                                                        lead.status === 'REJECT' ? 'Reject' :
+                                                                                                            lead.status === 'DORMANT' ? 'Dormant' :
+                                                                                                                lead.status.replace('_', ' ')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 font-medium text-xs text-gray-600">
+                                                    {(() => {
+                                                        const displayDate = lead.lastCallAt || lead.createdAt;
+                                                        if (displayDate) {
+                                                            return (
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-gray-900 font-bold">{format(new Date(displayDate), 'MMM d, yyyy')}</span>
+                                                                    <span className="text-[10px] text-gray-400 font-medium">at {format(new Date(displayDate), 'hh:mm a')}</span>
                                                                 </div>
-                                                                {!lead.assignedTo?.id && (
-                                                                    <div className="bg-primary text-white p-0.5 rounded-md shadow-sm">
-                                                                        <Check className="h-2.5 w-2.5" />
-                                                                    </div>
+                                                            );
+                                                        }
+                                                        return <span className="text-gray-300 italic">Never</span>;
+                                                    })()}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {lead.nextFollowUpAt && lead.status === 'FOLLOW_UP' && new Date(lead.nextFollowUpAt).getTime() > Date.now() ? (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold text-indigo-600">
+                                                                {format(new Date(lead.nextFollowUpAt), 'MMM d')}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 font-medium">
+                                                                at {format(new Date(lead.nextFollowUpAt), 'hh:mm a')}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-300 text-xs">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 relative agent-dropdown-container">
+                                                    <div className="flex justify-start w-full max-w-[140px]">
+                                                        <button
+                                                            className={`w-full flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border-2 transition-all duration-300 font-bold text-[10px] uppercase tracking-wider ${activeRowDropdown === lead.id
+                                                                ? 'bg-[#00a651]/5 border-[#00a651] text-[#00a651] shadow-sm'
+                                                                : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                                                }`}
+                                                            onClick={() => setActiveRowDropdown(activeRowDropdown === lead.id ? null : lead.id)}
+                                                            disabled={updatingAgent === lead.id}
+                                                        >
+                                                            <div className={`flex-none h-1.5 w-1.5 rounded-full ${lead.assignedTo?.id ? 'bg-[#00a651] shadow-[0_0_8px_rgba(0,166,81,0.5)]' : 'bg-gray-300'}`} />
+                                                            <span className="flex-1 truncate text-left">
+                                                                {updatingAgent === lead.id ? '...' : (lead.assignedTo?.name || 'Unassigned')}
+                                                            </span>
+                                                            <ChevronDown className={`flex-none h-3 w-3 transition-transform duration-300 ${activeRowDropdown === lead.id ? 'rotate-180' : 'opacity-40'}`} />
+                                                        </button>
+                                                    </div>
+
+                                                    {activeRowDropdown === lead.id && (
+                                                        <div className={`absolute ${filteredLeads.indexOf(lead) > (filteredLeads.length / 2) ? 'bottom-full mb-2' : 'top-full mt-2'} left-6 w-56 bg-white border border-gray-100 rounded-2xl shadow-2xl py-3 z-50 animate-in fade-in zoom-in-95 duration-200 ${filteredLeads.indexOf(lead) > (filteredLeads.length / 2) ? 'origin-bottom-left' : 'origin-top-left'}`}>
+                                                            <div className="px-4 py-2 border-b border-gray-50 mb-2 flex items-center gap-2">
+                                                                <UserPlus className="h-3 w-3 text-primary" />
+                                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Select Agent</p>
+                                                            </div>
+                                                            <div className="px-3 pb-2 mb-2 border-b border-gray-50">
+                                                                <div className="relative">
+                                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Search agents..."
+                                                                        className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-gray-700 placeholder:text-gray-400"
+                                                                        value={rowAgentEditSearch}
+                                                                        onChange={(e) => setRowAgentEditSearch(e.target.value)}
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="px-2 space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                                {!rowAgentEditSearch && (
+                                                                    <button
+                                                                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all duration-200 group ${!lead.assignedTo?.id
+                                                                            ? 'bg-primary/5 text-primary font-bold'
+                                                                            : 'text-gray-600 hover:bg-gray-50 hover:translate-x-1'
+                                                                            }`}
+                                                                        onClick={() => handleAgentChange(lead.id, 'unassigned')}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className={`h-2 w-2 rounded-full transition-all ${!lead.assignedTo?.id ? 'bg-primary scale-110' : 'bg-transparent border border-gray-200 group-hover:border-primary/40'}`} />
+                                                                            <span>Unassigned</span>
+                                                                        </div>
+                                                                        {!lead.assignedTo?.id && (
+                                                                            <div className="bg-primary text-white p-0.5 rounded-md shadow-sm">
+                                                                                <Check className="h-2.5 w-2.5" />
+                                                                            </div>
+                                                                        )}
+                                                                    </button>
                                                                 )}
+                                                                {users.filter(u => u.name.toLowerCase().includes(rowAgentEditSearch.toLowerCase())).map(u => (
+                                                                    <button
+                                                                        key={u.id}
+                                                                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all duration-200 group ${lead.assignedTo?.id === u.id
+                                                                            ? 'bg-primary/5 text-primary font-bold'
+                                                                            : 'text-gray-600 hover:bg-gray-50 hover:translate-x-1'
+                                                                            }`}
+                                                                        onClick={() => handleAgentChange(lead.id, u.id)}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className={`h-2 w-2 rounded-full transition-all ${lead.assignedTo?.id === u.id ? 'bg-primary scale-110' : 'bg-transparent border border-gray-200 group-hover:border-primary/40'}`} />
+                                                                            <span>{u.name}</span>
+                                                                        </div>
+                                                                        {lead.assignedTo?.id === u.id && (
+                                                                            <div className="bg-primary text-white p-0.5 rounded-md shadow-sm">
+                                                                                <Check className="h-2.5 w-2.5" />
+                                                                            </div>
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {lead.applicationForm && (
+                                                            <button
+                                                                onClick={() => handleOpenForm(lead)}
+                                                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors shadow-sm border border-emerald-100/50"
+                                                                title="Form Sheet"
+                                                            >
+                                                                <FileText className="h-4 w-4" />
                                                             </button>
                                                         )}
-                                                        {users.filter(u => u.name.toLowerCase().includes(rowAgentEditSearch.toLowerCase())).map(u => (
-                                                            <button
-                                                                key={u.id}
-                                                                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all duration-200 group ${lead.assignedTo?.id === u.id
-                                                                    ? 'bg-primary/5 text-primary font-bold'
-                                                                    : 'text-gray-600 hover:bg-gray-50 hover:translate-x-1'
-                                                                    }`}
-                                                                onClick={() => handleAgentChange(lead.id, u.id)}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`h-2 w-2 rounded-full transition-all ${lead.assignedTo?.id === u.id ? 'bg-primary scale-110' : 'bg-transparent border border-gray-200 group-hover:border-primary/40'}`} />
-                                                                    <span>{u.name}</span>
-                                                                </div>
-                                                                {lead.assignedTo?.id === u.id && (
-                                                                    <div className="bg-primary text-white p-0.5 rounded-md shadow-sm">
-                                                                        <Check className="h-2.5 w-2.5" />
-                                                                    </div>
-                                                                )}
-                                                            </button>
-                                                        ))}
+                                                        <button
+                                                            onClick={() => openViewModal(lead)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shadow-sm border border-blue-100/50"
+                                                            title="View"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openStatusModal(lead)}
+                                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors shadow-sm border border-indigo-100/50"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openDeleteModal(lead)}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors shadow-sm border border-red-100/50"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {lead.applicationForm && (
-                                                    <button
-                                                        onClick={() => handleOpenForm(lead)}
-                                                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors shadow-sm border border-emerald-100/50"
-                                                        title="Form Sheet"
-                                                    >
-                                                        <FileText className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => openViewModal(lead)}
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shadow-sm border border-blue-100/50"
-                                                    title="View"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => openStatusModal(lead)}
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors shadow-sm border border-indigo-100/50"
-                                                    title="Edit"
-                                                >
-                                                    <Edit2 className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => openDeleteModal(lead)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors shadow-sm border border-red-100/50"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -905,39 +934,39 @@ export default function LeadsPage() {
                         </div>
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             {/* Profile Header - Simplified */}
-                            <div className="flex items-center justify-between bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
-                                <div className="space-y-1">
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lead ID</label>
-                                    <p className="text-lg font-mono font-bold text-gray-900 tracking-tight">{selectedLead.leadId || '----'}</p>
+                            <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                                <div className="space-y-1.5">
+                                    <label className="block text-[9px] font-black text-[#a3a3a3] uppercase tracking-widest leading-none">Lead ID</label>
+                                    <p className="text-xl font-bold text-[#171717] tracking-tight">{selectedLead.leadId || '----'}</p>
                                 </div>
-                                <div className="space-y-1 px-4 flex-grow text-center">
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Loan Type</label>
+                                <div className="space-y-1.5 text-center px-2">
+                                    <label className="block text-[9px] font-black text-[#a3a3a3] uppercase tracking-widest leading-none mb-1">Loan Type</label>
                                     <span className={clsx(
-                                        "inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                                        (selectedLead.loanType !== 'Other' || selectedLead.customLoanType) ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"
+                                        "inline-flex px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                        (selectedLead.loanType !== 'Other' || selectedLead.customLoanType) ? "bg-[#ebf5ff] text-[#2563eb]" : "bg-gray-100 text-gray-400"
                                     )}>
                                         {selectedLead.loanType !== 'Other' ? selectedLead.loanType : (selectedLead.customLoanType ? `Other - ${selectedLead.customLoanType}` : 'Other')}
                                     </span>
                                 </div>
-                                <div className="space-y-1 px-4 flex-grow text-center">
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Phone Number</label>
-                                    <p className="text-lg font-bold text-indigo-600 tracking-tight">{formatPhoneNumber(selectedLead.phoneNumber)}</p>
+                                <div className="space-y-1.5 text-center px-2">
+                                    <label className="block text-[9px] font-black text-[#a3a3a3] uppercase tracking-widest leading-none">Phone Number</label>
+                                    <p className="text-xl font-bold text-[#4f46e5] tracking-tight">{formatPhoneNumber(selectedLead.phoneNumber)}</p>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Profile</label>
+                                <div className="space-y-1.5 text-center px-2">
+                                    <label className="block text-[9px] font-black text-[#a3a3a3] uppercase tracking-widest leading-none mb-1">Profile</label>
                                     <span className={clsx(
-                                        "inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                                        selectedLead.profile ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-400"
+                                        "inline-flex px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                        selectedLead.profile ? "bg-[#f5f3ff] text-[#7c3aed]" : "bg-gray-100 text-gray-400"
                                     )}>
                                         {selectedLead.profile || 'Not Set'}
                                     </span>
                                 </div>
-                                <div className="space-y-1 pl-4">
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">CIBIL Status</label>
+                                <div className="space-y-1.5 text-right">
+                                    <label className="block text-[9px] font-black text-[#a3a3a3] uppercase tracking-widest leading-none mb-1 text-center">Cibil Status</label>
                                     <span className={clsx(
-                                        "inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                                        selectedLead.cibilStatus === 'ISSUED' ? "bg-red-100 text-red-700" :
-                                            selectedLead.cibilStatus === 'NO ISSUED' ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
+                                        "inline-flex px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                        selectedLead.cibilStatus === 'ISSUED' ? "bg-[#fef2f2] text-[#dc2626]" :
+                                            selectedLead.cibilStatus === 'NO ISSUED' ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-400"
                                     )}>
                                         {selectedLead.cibilStatus || 'Not Set'}
                                     </span>
@@ -1136,7 +1165,7 @@ export default function LeadsPage() {
                     </div>
                 </div>
             )}
-
+            {/* Status Update Modal */}
             {/* Status Update Modal */}
             {isStatusModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200 backdrop-blur-sm">
@@ -1348,7 +1377,7 @@ export default function LeadsPage() {
                             )}
 
                             {/* Conditional Follow-up Fields */}
-                            {(newStatus === 'FOLLOW_UP' || newStatus === 'RECALL') && (
+                            {newStatus === 'FOLLOW_UP' && (
                                 <div className="space-y-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 animate-in fade-in duration-200">
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Follow-up Date & Time</label>
                                     <div className="grid grid-cols-3 gap-2 mb-2">
@@ -1596,535 +1625,532 @@ export default function LeadsPage() {
             )}
 
             {/* Delete Confirmation Modal */}
-            {
-                isDeleteModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="p-6 text-center">
-                                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Trash2 className="h-8 w-8 text-red-600" />
-                                </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Lead?</h3>
-                                <p className="text-sm text-gray-500 mb-6">
-                                    Are you sure you want to delete lead for <span className="font-bold text-gray-900">{selectedLead?.name || formatPhoneNumber(selectedLead?.phoneNumber || '')}</span>? This action cannot be undone.
-                                </p>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setIsDeleteModalOpen(false)}
-                                        className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteLead}
-                                        disabled={isDeleting}
-                                        className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-100 active:scale-95 transition-all disabled:opacity-50"
-                                    >
-                                        {isDeleting ? 'Deleting...' : 'Delete Now'}
-                                    </button>
-                                </div>
-                            </div>
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                size="lg"
+                title={
+                    <div className="flex items-center gap-3 text-rose-600">
+                        <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center shadow-sm border border-rose-100/50">
+                            <Trash2 className="h-5 w-5" />
                         </div>
+                        <h3 className="text-xl font-black uppercase tracking-tight leading-none">Delete Lead</h3>
                     </div>
-                )
-            }
+                }
+                footer={
+                    <div className="flex items-center justify-center gap-3 w-full">
+                        <button
+                            onClick={() => setIsDeleteModalOpen(false)}
+                            className="flex-1 h-12 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all border border-slate-100"
+                        >
+                            No, Keep it
+                        </button>
+                        <button
+                            onClick={handleDeleteLead}
+                            className="flex-1 h-12 bg-rose-600 text-white rounded-xl hover:bg-rose-700 hover:shadow-rose-600/20 active:scale-[0.98] transition-all shadow-lg shadow-rose-600/10 font-black text-[11px] uppercase tracking-widest leading-none"
+                        >
+                            Yes, Delete
+                        </button>
+                    </div>
+                }
+            >
+                <div className="flex flex-col items-center text-center py-4 space-y-4">
+                    <div className="p-4 bg-rose-50 rounded-full">
+                        <AlertTriangle className="h-10 w-10 text-rose-500 animate-bounce" />
+                    </div>
+                    <div className="space-y-2">
+                        <p className="text-lg font-black text-slate-900 leading-tight">Are you absolutely sure?</p>
+                        <p className="text-sm font-bold text-slate-400 leading-relaxed max-w-[280px]">
+                            This action cannot be undone. Lead <span className="text-slate-900 font-black">"{selectedLead?.name || selectedLead?.leadId}"</span> will be permanently removed.
+                        </p>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Create Lead Modal */}
-            {
-                isCreateLeadModalOpen && (
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                                        <Plus className="h-5 w-5 text-indigo-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-base font-black text-gray-900">Create New Lead</h3>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Add a lead manually</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setIsCreateLeadModalOpen(false)}
-                                    className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                                >
-                                    <X className="h-4 w-4 text-gray-500" />
-                                </button>
-                            </div>
-
-                            {/* Body */}
-                            <div className="px-6 py-5 space-y-4">
-                                {/* Phone Number */}
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Phone Number *</label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Enter 10-digit phone number"
-                                            value={createLeadPhone}
-                                            onChange={(e) => setCreateLeadPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 text-gray-900 bg-white transition-all"
-                                            maxLength={10}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Name */}
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Name</label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Contact name (optional)"
-                                            value={createLeadName}
-                                            onChange={(e) => setCreateLeadName(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 text-gray-900 bg-white transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Date & Time */}
-                                {/* Date & Time */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Date</label>
-                                        <div className="relative">
-                                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                            <input
-                                                type="date"
-                                                value={createLeadDate}
-                                                onChange={(e) => setCreateLeadDate(e.target.value)}
-                                                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 text-gray-900 bg-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Time</label>
-                                        <input
-                                            type="time"
-                                            value={createLeadTime}
-                                            onChange={(e) => setCreateLeadTime(e.target.value)}
-                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 text-gray-900 bg-white transition-all"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                                <button
-                                    onClick={() => setIsCreateLeadModalOpen(false)}
-                                    className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleCreateLead}
-                                    disabled={isCreatingLead || !createLeadPhone}
-                                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 shadow-lg shadow-indigo-100 active:scale-95 transition-all disabled:opacity-50"
-                                >
-                                    {isCreatingLead ? 'Creating...' : 'Create Lead'}
-                                </button>
-                            </div>
+            <Modal
+                isOpen={isCreateLeadModalOpen}
+                onClose={() => setIsCreateLeadModalOpen(false)}
+                size="lg"
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
+                            <Plus className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Create Lead</h3>
+                            <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Manual Entry</span>
                         </div>
                     </div>
-                )
-            }
+                }
+                footer={
+                    <div className="flex items-center justify-end gap-3 w-full">
+                        <button
+                            onClick={() => setIsCreateLeadModalOpen(false)}
+                            className="px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleCreateLead}
+                            disabled={isCreatingLead || !createLeadPhone}
+                            className="flex items-center justify-center gap-2.5 px-8 py-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:shadow-indigo-600/20 active:scale-[0.98] transition-all shadow-lg shadow-indigo-600/10 font-black text-[11px] uppercase tracking-widest leading-none disabled:opacity-50"
+                        >
+                            {isCreatingLead ? (
+                                <>
+                                    <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Creating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-3.5 w-3.5" />
+                                    <span>Create Lead</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                }
+            >
+                <div className="space-y-6">
+                    <div className="space-y-2.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Phone Number *</label>
+                        <div className="relative">
+                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                            <input
+                                type="tel"
+                                maxLength={10}
+                                placeholder="10-digit phone number"
+                                value={createLeadPhone}
+                                onChange={(e) => setCreateLeadPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                className="w-full h-14 pl-12 pr-5 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all"
+                            />
+                        </div>
+                    </div>
 
-            {/* Application Form Modal */}
-            {isFormModalOpen && applicationFormData && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="bg-white px-8 py-6 border-b border-gray-100 flex justify-between items-center shrink-0">
-                            <div>
-                                <div className="flex items-center gap-3 mb-1">
-                                    <div className="p-2 bg-emerald-50 rounded-xl">
-                                        <FileText className="h-5 w-5 text-emerald-600" />
-                                    </div>
-                                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Form Sheet</h3>
-                                </div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-11">
-                                    Lead ID: <span className="text-emerald-500">{selectedLeadForForm?.leadId}</span>
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={handleDownloadPdf}
-                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs hover:bg-emerald-100 transition-all border border-emerald-100"
-                                    title="Download PDF"
-                                >
-                                    <Download className="h-4 w-4" />
-                                    <span>Download PDF</span>
-                                </button>
-                                <button
-                                    onClick={() => setIsFormModalOpen(false)}
-                                    className="p-3 hover:bg-gray-100 rounded-2xl transition-all duration-200 text-gray-400 hover:text-gray-900"
-                                >
-                                    <X className="h-6 w-6" />
-                                </button>
+                    <div className="space-y-2.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                            <input
+                                type="text"
+                                placeholder="Contact name (optional)"
+                                value={createLeadName}
+                                onChange={(e) => setCreateLeadName(e.target.value)}
+                                className="w-full h-14 pl-12 pr-5 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2.5">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Date</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                <input
+                                    type="date"
+                                    value={createLeadDate}
+                                    onChange={(e) => setCreateLeadDate(e.target.value)}
+                                    className="w-full h-14 pl-12 pr-5 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all"
+                                />
                             </div>
                         </div>
-
-                        {/* Scrollable Content */}
-                        <div className="overflow-y-auto p-8 custom-scrollbar">
-                            <div className="space-y-10">
-                                {/* Section 1: Applicant Details */}
-                                 <section>
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="h-8 w-1 bg-emerald-500 rounded-full" />
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">Header & Tracking</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-emerald-50/20 rounded-2xl border border-emerald-100/50 mb-8">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">File Number</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Enter file number..."
-                                                value={applicationFormData.fileNumber || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, fileNumber: e.target.value })}
-                                                className="w-full bg-white border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Company Name</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Enter company name..."
-                                                value={applicationFormData.companyName || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, companyName: e.target.value })}
-                                                className="w-full bg-white border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="h-8 w-1 bg-emerald-500 rounded-full" />
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">Applicant Details</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Full Name</label>
-                                            <input
-                                                type="text"
-                                                value={applicationFormData.name || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, name: e.target.value })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Phone Number</label>
-                                            <input
-                                                type="text"
-                                                value={applicationFormData.phoneNumber || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, phoneNumber: e.target.value })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Email Address</label>
-                                            <input
-                                                type="email"
-                                                value={applicationFormData.email || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, email: e.target.value })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Mother's Name</label>
-                                            <input
-                                                type="text"
-                                                value={applicationFormData.motherName || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, motherName: e.target.value })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Date of Birth</label>
-                                            <input
-                                                type="date"
-                                                value={applicationFormData.dob || ''}
-                                                onChange={(e) => setApplicationFormData({ ...applicationFormData, dob: e.target.value })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Section 2: Addresses */}
-                                <section>
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="h-8 w-1 bg-blue-500 rounded-full" />
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">Addresses</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Current Address</label>
-                                            <textarea
-                                                rows={2}
-                                                value={applicationFormData.addresses?.current || ''}
-                                                onChange={(e) => setApplicationFormData({
-                                                    ...applicationFormData,
-                                                    addresses: { ...applicationFormData.addresses, current: e.target.value }
-                                                })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none resize-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Permanent Address</label>
-                                            <textarea
-                                                rows={2}
-                                                value={applicationFormData.addresses?.permanent || ''}
-                                                onChange={(e) => setApplicationFormData({
-                                                    ...applicationFormData,
-                                                    addresses: { ...applicationFormData.addresses, permanent: e.target.value }
-                                                })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none resize-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Office Address</label>
-                                            <textarea
-                                                rows={2}
-                                                value={applicationFormData.addresses?.office || ''}
-                                                onChange={(e) => setApplicationFormData({
-                                                    ...applicationFormData,
-                                                    addresses: { ...applicationFormData.addresses, office: e.target.value }
-                                                })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none resize-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Section 3: Financials */}
-                                <section>
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="h-8 w-1 bg-indigo-500 rounded-full" />
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">Financial Information</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Net Salary (INR)</label>
-                                            <input
-                                                type="number"
-                                                value={applicationFormData.financials?.netSalaryInr || 0}
-                                                onChange={(e) => setApplicationFormData({
-                                                    ...applicationFormData,
-                                                    financials: { ...applicationFormData.financials, netSalaryInr: Number(e.target.value) }
-                                                })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Loan Amount (INR)</label>
-                                            <input
-                                                type="number"
-                                                value={applicationFormData.financials?.loanAmountInr || 0}
-                                                onChange={(e) => setApplicationFormData({
-                                                    ...applicationFormData,
-                                                    financials: { ...applicationFormData.financials, loanAmountInr: Number(e.target.value) }
-                                                })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Current Obligation (INR)</label>
-                                            <input
-                                                type="number"
-                                                value={applicationFormData.financials?.obligationInr || 0}
-                                                onChange={(e) => setApplicationFormData({
-                                                    ...applicationFormData,
-                                                    financials: { ...applicationFormData.financials, obligationInr: Number(e.target.value) }
-                                                })}
-                                                className="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Section 4: References */}
-                                <section>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-8 w-1 bg-amber-500 rounded-full" />
-                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">References</h4>
-                                        </div>
-                                        <button
-                                            onClick={() => setApplicationFormData({
-                                                ...applicationFormData,
-                                                references: [...(applicationFormData.references || []), { name: '', phoneNumber: '' }]
-                                            })}
-                                            className="text-[10px] font-black text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg transition-all uppercase tracking-widest"
-                                        >
-                                            + Add Reference
-                                        </button>
-                                    </div>
-                                    <div className="space-y-4">
-                                        {(applicationFormData.references || []).map((ref: any, idx: number) => (
-                                            <div key={idx} className="flex gap-4 items-end bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                                                <div className="flex-1">
-                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Name</label>
-                                                    <input
-                                                        type="text"
-                                                        value={ref.name || ''}
-                                                        onChange={(e) => {
-                                                            const newRefs = [...(applicationFormData.references || [])];
-                                                            newRefs[idx] = { ...newRefs[idx], name: e.target.value };
-                                                            setApplicationFormData({ ...applicationFormData, references: newRefs });
-                                                        }}
-                                                        className="w-full bg-white border-gray-200 rounded-xl p-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-amber-500/20 outline-none"
-                                                    />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Phone</label>
-                                                    <input
-                                                        type="text"
-                                                        value={ref.phoneNumber || ''}
-                                                        onChange={(e) => {
-                                                            const newRefs = [...(applicationFormData.references || [])];
-                                                            newRefs[idx] = { ...newRefs[idx], phoneNumber: e.target.value };
-                                                            setApplicationFormData({ ...applicationFormData, references: newRefs });
-                                                        }}
-                                                        className="w-full bg-white border-gray-200 rounded-xl p-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-amber-500/20 outline-none"
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newRefs = applicationFormData.references.filter((_: any, i: number) => i !== idx);
-                                                        setApplicationFormData({ ...applicationFormData, references: newRefs });
-                                                    }}
-                                                    className="p-2.5 text-gray-300 hover:text-red-500 bg-white rounded-xl border border-gray-100 transition-all hover:bg-red-50"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-
-                                {/* Section 5: Co-Applicants */}
-                                <section>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-8 w-1 bg-violet-500 rounded-full" />
-                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">Co-Applicants</h4>
-                                        </div>
-                                        <button
-                                            onClick={() => setApplicationFormData({
-                                                ...applicationFormData,
-                                                coApplicants: [...(applicationFormData.coApplicants || []), { name: '', phoneNumber: '', email: '', motherName: '' }]
-                                            })}
-                                            className="text-[10px] font-black text-violet-600 hover:text-violet-700 bg-violet-50 px-3 py-1.5 rounded-lg transition-all uppercase tracking-widest"
-                                        >
-                                            + Add Co-Applicant
-                                        </button>
-                                    </div>
-                                    <div className="space-y-6">
-                                        {(applicationFormData.coApplicants || []).map((co: any, idx: number) => (
-                                            <div key={idx} className="relative bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
-                                                <button
-                                                    onClick={() => {
-                                                        const newCos = applicationFormData.coApplicants.filter((_: any, i: number) => i !== idx);
-                                                        setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
-                                                    }}
-                                                    className="absolute top-4 right-4 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Name</label>
-                                                        <input
-                                                            type="text"
-                                                            value={co.name || ''}
-                                                            onChange={(e) => {
-                                                                const newCos = [...(applicationFormData.coApplicants || [])];
-                                                                newCos[idx] = { ...newCos[idx], name: e.target.value };
-                                                                setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
-                                                            }}
-                                                            className="w-full bg-white border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-violet-500/20 outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Phone</label>
-                                                        <input
-                                                            type="text"
-                                                            value={co.phoneNumber || ''}
-                                                            onChange={(e) => {
-                                                                const newCos = [...(applicationFormData.coApplicants || [])];
-                                                                newCos[idx] = { ...newCos[idx], phoneNumber: e.target.value };
-                                                                setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
-                                                            }}
-                                                            className="w-full bg-white border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-violet-500/20 outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Email</label>
-                                                        <input
-                                                            type="email"
-                                                            value={co.email || ''}
-                                                            onChange={(e) => {
-                                                                const newCos = [...(applicationFormData.coApplicants || [])];
-                                                                newCos[idx] = { ...newCos[idx], email: e.target.value };
-                                                                setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
-                                                            }}
-                                                            className="w-full bg-white border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-violet-500/20 outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Mother's Name</label>
-                                                        <input
-                                                            type="text"
-                                                            value={co.motherName || ''}
-                                                            onChange={(e) => {
-                                                                const newCos = [...(applicationFormData.coApplicants || [])];
-                                                                newCos[idx] = { ...newCos[idx], motherName: e.target.value };
-                                                                setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
-                                                            }}
-                                                            className="w-full bg-white border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-violet-500/20 outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="bg-gray-50 px-8 py-6 border-t border-gray-100 flex justify-end gap-4 shrink-0">
-                            <button
-                                onClick={() => setIsFormModalOpen(false)}
-                                className="px-6 py-3 text-sm font-black text-gray-500 hover:text-gray-700 transition-colors uppercase tracking-[0.2em]"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSaveForm}
-                                disabled={isSavingForm}
-                                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white px-8 py-3 rounded-2xl shadow-lg shadow-emerald-200 text-sm font-black transition-all transform hover:-translate-y-0.5 active:translate-y-0 uppercase tracking-widest flex items-center gap-2"
-                            >
-                                {isSavingForm ? (
-                                    <>
-                                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>Saving...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check className="h-4 w-4" />
-                                        <span>Save Application</span>
-                                    </>
-                                )}
-                            </button>
+                        <div className="space-y-2.5">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Time</label>
+                            <input
+                                type="time"
+                                value={createLeadTime}
+                                onChange={(e) => setCreateLeadTime(e.target.value)}
+                                className="w-full h-14 px-5 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all"
+                            />
                         </div>
                     </div>
                 </div>
-            )}
+            </Modal>
+
+            {/* Application Form Modal */}
+            <Modal
+                isOpen={isFormModalOpen}
+                onClose={() => setIsFormModalOpen(false)}
+                size="4xl"
+                title={
+                    <div className="flex items-center justify-between w-full pr-8">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100/50">
+                                <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Form Sheet</h3>
+                                <span className="text-[10px] font-bold text-emerald-500 mt-1 uppercase tracking-widest leading-none">Lead ID: {selectedLeadForForm?.leadId}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleDownloadPdf}
+                            className="hidden md:flex items-center gap-2.5 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10 active:scale-95"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                            <span>Download PDF</span>
+                        </button>
+                    </div>
+                }
+                footer={
+                    <div className="flex items-center justify-end gap-4 w-full">
+                        <button
+                            onClick={() => setIsFormModalOpen(false)}
+                            className="px-8 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSaveForm}
+                            disabled={isSavingForm}
+                            className="flex items-center justify-center gap-2.5 px-10 py-3.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 hover:shadow-emerald-600/20 active:scale-[0.98] transition-all shadow-lg shadow-emerald-600/10 font-black text-[11px] uppercase tracking-widest leading-none disabled:opacity-50"
+                        >
+                            {isSavingForm ? (
+                                <>
+                                    <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Saving...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Check className="h-3.5 w-3.5" />
+                                    <span>Save Application</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                }
+            >
+                {applicationFormData && (
+                    <div className="space-y-12 pb-6">
+                        {/* Section 1: Header & Tracking */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-1.5 bg-emerald-500 rounded-full" />
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Header & Tracking</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-[1.5rem] border border-slate-100">
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">File Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter file number..."
+                                        value={applicationFormData.fileNumber || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, fileNumber: e.target.value })}
+                                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-300 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Company Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter company name..."
+                                        value={applicationFormData.companyName || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, companyName: e.target.value })}
+                                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-300 transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 2: Applicant Details */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-1.5 bg-blue-500 rounded-full" />
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Applicant Details</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
+                                    <input
+                                        type="text"
+                                        value={applicationFormData.name || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, name: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-300 focus:bg-white transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Phone Number</label>
+                                    <input
+                                        type="text"
+                                        value={applicationFormData.phoneNumber || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, phoneNumber: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-300 focus:bg-white transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        value={applicationFormData.email || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, email: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-300 focus:bg-white transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mother's Name</label>
+                                    <input
+                                        type="text"
+                                        value={applicationFormData.motherName || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, motherName: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-300 focus:bg-white transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Date of Birth</label>
+                                    <input
+                                        type="date"
+                                        value={applicationFormData.dob || ''}
+                                        onChange={(e) => setApplicationFormData({ ...applicationFormData, dob: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-300 focus:bg-white transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 3: Addresses */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-1.5 bg-indigo-500 rounded-full" />
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Addresses</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Current Address</label>
+                                    <textarea
+                                        rows={3}
+                                        value={applicationFormData.addresses?.current || ''}
+                                        onChange={(e) => setApplicationFormData({
+                                            ...applicationFormData,
+                                            addresses: { ...applicationFormData.addresses, current: e.target.value }
+                                        })}
+                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all resize-none"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Permanent Address</label>
+                                    <textarea
+                                        rows={3}
+                                        value={applicationFormData.addresses?.permanent || ''}
+                                        onChange={(e) => setApplicationFormData({
+                                            ...applicationFormData,
+                                            addresses: { ...applicationFormData.addresses, permanent: e.target.value }
+                                        })}
+                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all resize-none"
+                                    />
+                                </div>
+                                <div className="md:col-span-2 space-y-2.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Office Address</label>
+                                    <textarea
+                                        rows={2}
+                                        value={applicationFormData.addresses?.office || ''}
+                                        onChange={(e) => setApplicationFormData({
+                                            ...applicationFormData,
+                                            addresses: { ...applicationFormData.addresses, office: e.target.value }
+                                        })}
+                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all resize-none"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 4: Financials */}
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-1.5 bg-amber-500 rounded-full" />
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Financial Information</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-amber-50/20 rounded-[1.5rem] border border-amber-100/50">
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">Net Salary (INR)</label>
+                                    <input
+                                        type="number"
+                                        value={applicationFormData.financials?.netSalaryInr || 0}
+                                        onChange={(e) => setApplicationFormData({
+                                            ...applicationFormData,
+                                            financials: { ...applicationFormData.financials, netSalaryInr: Number(e.target.value) }
+                                        })}
+                                        className="w-full h-12 px-4 bg-white border border-amber-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">Loan Amount (INR)</label>
+                                    <input
+                                        type="number"
+                                        value={applicationFormData.financials?.loanAmountInr || 0}
+                                        onChange={(e) => setApplicationFormData({
+                                            ...applicationFormData,
+                                            financials: { ...applicationFormData.financials, loanAmountInr: Number(e.target.value) }
+                                        })}
+                                        className="w-full h-12 px-4 bg-white border border-amber-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">Current Obligation (INR)</label>
+                                    <input
+                                        type="number"
+                                        value={applicationFormData.financials?.obligationInr || 0}
+                                        onChange={(e) => setApplicationFormData({
+                                            ...applicationFormData,
+                                            financials: { ...applicationFormData.financials, obligationInr: Number(e.target.value) }
+                                        })}
+                                        className="w-full h-12 px-4 bg-white border border-amber-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 5: References */}
+                        <section className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-1.5 bg-rose-500 rounded-full" />
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">References</h4>
+                                </div>
+                                <button
+                                    onClick={() => setApplicationFormData({
+                                        ...applicationFormData,
+                                        references: [...(applicationFormData.references || []), { name: '', phoneNumber: '' }]
+                                    })}
+                                    className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 transition-all"
+                                >
+                                    <Plus className="h-3 w-3" />
+                                    <span>Add Reference</span>
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(applicationFormData.references || []).map((ref: any, idx: number) => (
+                                    <div key={idx} className="group relative flex gap-4 items-end bg-slate-50/50 p-5 rounded-2xl border border-slate-100 hover:border-rose-100 hover:bg-rose-50/10 transition-all">
+                                        <div className="flex-1 space-y-2">
+                                            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none px-1">Name</label>
+                                            <input
+                                                type="text"
+                                                value={ref.name || ''}
+                                                onChange={(e) => {
+                                                    const newRefs = [...(applicationFormData.references || [])];
+                                                    newRefs[idx] = { ...newRefs[idx], name: e.target.value };
+                                                    setApplicationFormData({ ...applicationFormData, references: newRefs });
+                                                }}
+                                                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-rose-500/5 focus:border-rose-200 transition-all"
+                                            />
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none px-1">Phone</label>
+                                            <input
+                                                type="text"
+                                                value={ref.phoneNumber || ''}
+                                                onChange={(e) => {
+                                                    const newRefs = [...(applicationFormData.references || [])];
+                                                    newRefs[idx] = { ...newRefs[idx], phoneNumber: e.target.value };
+                                                    setApplicationFormData({ ...applicationFormData, references: newRefs });
+                                                }}
+                                                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-rose-500/5 focus:border-rose-200 transition-all"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const newRefs = applicationFormData.references.filter((_: any, i: number) => i !== idx);
+                                                setApplicationFormData({ ...applicationFormData, references: newRefs });
+                                            }}
+                                            className="h-10 w-10 flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Section 6: Co-Applicants */}
+                        <section className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-1.5 bg-violet-500 rounded-full" />
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Co-Applicants</h4>
+                                </div>
+                                <button
+                                    onClick={() => setApplicationFormData({
+                                        ...applicationFormData,
+                                        coApplicants: [...(applicationFormData.coApplicants || []), { name: '', phoneNumber: '', email: '', motherName: '' }]
+                                    })}
+                                    className="flex items-center gap-2 px-4 py-2 bg-violet-50 text-violet-600 rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-violet-100 transition-all"
+                                >
+                                    <Plus className="h-3 w-3" />
+                                    <span>Add Co-Applicant</span>
+                                </button>
+                            </div>
+                            <div className="space-y-6">
+                                {(applicationFormData.coApplicants || []).map((co: any, idx: number) => (
+                                    <div key={idx} className="relative bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:border-violet-100 transition-all">
+                                        <button
+                                            onClick={() => {
+                                                const newCos = applicationFormData.coApplicants.filter((_: any, i: number) => i !== idx);
+                                                setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
+                                            }}
+                                            className="absolute top-6 right-6 h-10 w-10 flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all"
+                                        >
+                                            <X className="h-5 w-5" />
+                                        </button>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="space-y-2.5">
+                                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={co.name || ''}
+                                                    onChange={(e) => {
+                                                        const newCos = [...(applicationFormData.coApplicants || [])];
+                                                        newCos[idx] = { ...newCos[idx], name: e.target.value };
+                                                        setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
+                                                    }}
+                                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2.5">
+                                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Phone</label>
+                                                <input
+                                                    type="text"
+                                                    value={co.phoneNumber || ''}
+                                                    onChange={(e) => {
+                                                        const newCos = [...(applicationFormData.coApplicants || [])];
+                                                        newCos[idx] = { ...newCos[idx], phoneNumber: e.target.value };
+                                                        setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
+                                                    }}
+                                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2.5">
+                                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email</label>
+                                                <input
+                                                    type="email"
+                                                    value={co.email || ''}
+                                                    onChange={(e) => {
+                                                        const newCos = [...(applicationFormData.coApplicants || [])];
+                                                        newCos[idx] = { ...newCos[idx], email: e.target.value };
+                                                        setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
+                                                    }}
+                                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2.5">
+                                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mother's Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={co.motherName || ''}
+                                                    onChange={(e) => {
+                                                        const newCos = [...(applicationFormData.coApplicants || [])];
+                                                        newCos[idx] = { ...newCos[idx], motherName: e.target.value };
+                                                        setApplicationFormData({ ...applicationFormData, coApplicants: newCos });
+                                                    }}
+                                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
