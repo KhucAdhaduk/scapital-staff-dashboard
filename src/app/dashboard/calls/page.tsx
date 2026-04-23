@@ -4,7 +4,8 @@ import { callService } from '@/services/callService';
 import { CallLog, LeadStats, leadService } from '@/services/leadService';
 import { userService } from '@/services/userService';
 import { format } from 'date-fns';
-import { ArrowDownLeft, ArrowUpRight, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, Filter, Phone, PhoneMissed, PhoneOutgoing, Plus, Search, User, UserPlus, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, Filter, Phone, PhoneMissed, PhoneOutgoing, Plus, Search, Upload, User, UserPlus, X } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
@@ -33,6 +34,12 @@ export default function CallsPage() {
     const [createLeadDate, setCreateLeadDate] = useState('');
     const [createLeadTime, setCreateLeadTime] = useState('');
     const [isCreatingLead, setIsCreatingLead] = useState(false);
+
+    // Import Leads Modal State
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importPreview, setImportPreview] = useState<{ phoneNumber: string; name?: string }[]>([]);
+    const [isImporting, setIsImporting] = useState(false);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -201,6 +208,63 @@ export default function CallsPage() {
         }
     };
 
+    const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImportFile(file);
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const XLSX = await import('xlsx');
+                const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const jsonData: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                const leads = jsonData
+                    .map(row => {
+                        const phone = String(row['Phone Number'] || row['phone'] || row['Phone'] || row['phoneNumber'] || row['Mobile'] || row['mobile'] || '').trim().replace(/[^0-9]/g, '');
+                        const name = String(row['Name'] || row['name'] || row['Customer Name'] || row['Lead Name'] || '').trim();
+                        return { phoneNumber: phone, name: name || undefined };
+                    })
+                    .filter(l => l.phoneNumber && l.phoneNumber.length >= 10);
+
+                setImportPreview(leads);
+                if (leads.length === 0) {
+                    toast.error('No valid phone numbers found. Ensure a column named "Phone Number" or "Phone" exists.');
+                }
+            } catch (err) {
+                toast.error('Failed to parse the Excel file.');
+                setImportPreview([]);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    const handleImportLeads = async () => {
+        if (importPreview.length === 0) return;
+        setIsImporting(true);
+        try {
+            const result = await leadService.importLeads({
+                leads: importPreview
+            });
+            toast.success(`Imported ${result.imported} leads. Skipped ${result.skipped} duplicates.`);
+            if (result.errors.length > 0) {
+                toast.error(`${result.errors.length} leads failed to import.`);
+            }
+            setIsImportModalOpen(false);
+            setImportFile(null);
+            setImportPreview([]);
+            fetchCalls();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to import leads');
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     const statusOptions = [
         'NEW', 'FOLLOW_UP', 'COMPLETED', 'NOT_INTERESTED', 'NO_ANSWER', 'CLOSED', 'INVALID_WRONG', 'INTERESTED', 'RECALL', 'LOGIN', 'SANCTIONED', 'DISBURSEMENT', 'REJECT', 'DORMANT'
     ];
@@ -222,13 +286,22 @@ export default function CallsPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900">Call Leads</h1>
-                <button
-                    onClick={openCreateLeadModal}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none"
-                >
-                    <Plus className="h-4 w-4" />
-                    <span>Create Lead</span>
-                </button>
+                <div className="flex items-center gap-2.5">
+                    <button
+                        onClick={openCreateLeadModal}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-[#00a651] text-white rounded-xl hover:bg-[#008d45] hover:shadow-green-500/20 active:scale-[0.98] transition-all shadow-lg shadow-green-600/10 font-black text-[10px] uppercase tracking-widest leading-none"
+                    >
+                        <Plus className="h-4 w-4" />
+                        <span>Create Lead</span>
+                    </button>
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white text-slate-600 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all border border-slate-100 shadow-xl shadow-slate-200/50 group"
+                    >
+                        <Upload className="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors" />
+                        <span>Import Leads</span>
+                    </button>
+                </div>
             </div>
 
             {/* Stats Summary */}
@@ -730,6 +803,115 @@ export default function CallsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Import Leads Modal */}
+            <Modal
+                isOpen={isImportModalOpen}
+                onClose={() => { setIsImportModalOpen(false); setImportFile(null); setImportPreview([]); }}
+                size="xl"
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shadow-sm border border-violet-100/50">
+                            <Upload className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Import Leads</h3>
+                            <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Upload Excel Sheet</span>
+                        </div>
+                    </div>
+                }
+                footer={
+                    <div className="flex items-center justify-end gap-3 w-full">
+                        <button
+                            onClick={() => { setIsImportModalOpen(false); setImportFile(null); setImportPreview([]); }}
+                            className="px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleImportLeads}
+                            disabled={isImporting || importPreview.length === 0}
+                            className="flex items-center justify-center gap-2.5 px-8 py-3.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 hover:shadow-violet-600/20 active:scale-[0.98] transition-all shadow-lg shadow-violet-600/10 font-black text-[11px] uppercase tracking-widest leading-none disabled:opacity-50"
+                        >
+                            {isImporting ? (
+                                <>
+                                    <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Importing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Upload className="h-3.5 w-3.5" />
+                                    <span>Import {importPreview.length} Leads</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                }
+            >
+                <div className="space-y-6">
+                    {/* File Upload Area */}
+                    <div className="space-y-2.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Excel File (.xlsx, .xls)</label>
+                        <div className="relative">
+                            <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                onChange={handleImportFileChange}
+                                className="hidden"
+                                id="import-file-calls"
+                            />
+                            <label
+                                htmlFor="import-file-calls"
+                                className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:border-violet-300 hover:bg-violet-50/30 transition-all cursor-pointer group"
+                            >
+                                <Upload className="h-8 w-8 text-slate-300 group-hover:text-violet-400 transition-colors mb-3" />
+                                <span className="text-xs font-bold text-slate-400 group-hover:text-violet-500 transition-colors">
+                                    {importFile ? importFile.name : 'Click to select Excel file'}
+                                </span>
+                                <span className="text-[10px] text-slate-300 mt-1">Columns: Phone Number (required), Name (optional)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    {importPreview.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                    Preview ({importPreview.length} leads found)
+                                </span>
+                            </div>
+                            <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-100">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 sticky top-0">
+                                        <tr>
+                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">#</th>
+                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Phone Number</th>
+                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {importPreview.slice(0, 50).map((lead, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[11px] font-bold text-slate-300">{idx + 1}</td>
+                                                <td className="px-4 py-2.5 text-xs font-bold text-slate-700">{lead.phoneNumber}</td>
+                                                <td className="px-4 py-2.5 text-xs font-medium text-slate-500">{lead.name || '\u2014'}</td>
+                                            </tr>
+                                        ))}
+                                        {importPreview.length > 50 && (
+                                            <tr>
+                                                <td colSpan={3} className="px-4 py-3 text-center text-[10px] font-bold text-slate-400">
+                                                    ...and {importPreview.length - 50} more leads
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 }
