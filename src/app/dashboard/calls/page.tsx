@@ -250,7 +250,7 @@ export default function CallsPage() {
             const result = await leadService.importLeads({
                 leads: importPreview
             });
-            toast.success(`Imported ${result.imported} leads. Skipped ${result.skipped} duplicates.`);
+            toast.success(`Imported ${result.imported} leads (${result.newLeads} new, ${result.updatedLeads} recalled).`);
             if (result.errors.length > 0) {
                 toast.error(`${result.errors.length} leads failed to import.`);
             }
