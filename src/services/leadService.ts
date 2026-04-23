@@ -27,6 +27,8 @@ export interface Lead {
   assignedLoanType?: LoanType;
   assignedTo?: { id: string; name: string; email: string };
   applicationForm?: { id: string } | null;
+  branchId?: string;
+  branchSerialId?: number;
   callLogs?: CallLog[];
   _count?: { callLogs: number };
 }
@@ -73,7 +75,7 @@ export interface CallLog {
   createdAt: string;
   caller?: { id: string; name: string };
   admin?: { id: string; name: string };
-  lead?: { status: string; name?: string | null; serialId?: number };
+  lead?: { status: string; name?: string | null; serialId?: number; branchSerialId?: number; leadId?: string };
 }
 
 export interface LeadStats {

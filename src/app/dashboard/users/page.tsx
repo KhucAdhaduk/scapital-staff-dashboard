@@ -4,6 +4,7 @@ import { User, userService } from '@/services/userService';
 import { format } from 'date-fns';
 import { AlertCircle, Eye, EyeOff, Key, Pencil, Phone, Search, Shield, Trash2, User as UserIcon, UserPlus, X, ChevronDown, Check, ShieldCheck, Users } from 'lucide-react';
 import React, { useEffect, useState, useRef } from 'react';
+import { Switch } from '@/components/ui/Switch';
 import toast from 'react-hot-toast';
 import { formatPhoneNumber } from '@/utils/phoneFormat';
 
@@ -171,6 +172,17 @@ export default function UsersPage() {
         }
     };
 
+    const handleToggleStatus = async (id: string, isEnabled: boolean) => {
+        try {
+            await userService.toggleStatus(id, isEnabled);
+            setUsers(prev => prev.map(user => user.id === id ? { ...user, isEnabled } : user));
+            toast.success(`User ${isEnabled ? 'enabled' : 'disabled'} successfully`);
+        } catch (error) {
+            console.error('Error toggling status:', error);
+            toast.error('Failed to update status');
+        }
+    };
+
     const filteredUsers = users.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -221,22 +233,23 @@ export default function UsersPage() {
                             <tr>
                                 <th className="w-[20%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left">Full Name</th>
                                 <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left">Username</th>
-                                <th className="w-[15%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Mobile Number</th>
+                                <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Mobile Number</th>
                                 <th className="w-[12%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">User Type</th>
-                                <th className="w-[18%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Registration Date</th>
-                                <th className="w-[13%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
+                                <th className="w-[10%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Status</th>
+                                <th className="w-[15%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Registration Date</th>
+                                <th className="w-[18%] px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan={5} className="px-6 py-6"><div className="h-4 bg-gray-100 rounded w-full" /></td>
+                                        <td colSpan={7} className="px-6 py-6"><div className="h-4 bg-gray-100 rounded w-full" /></td>
                                     </tr>
                                 ))
                             ) : filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
+                                    <td colSpan={7} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-2">
                                             <Shield className="h-10 w-10 text-gray-200" />
                                             <p className="text-gray-500 font-medium">No users found</p>
@@ -248,10 +261,11 @@ export default function UsersPage() {
                                     <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center border border-primary/10 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                                                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center border border-primary/10 shadow-sm group-hover:scale-110 transition-transform duration-300 relative">
                                                     <span className="text-primary font-bold text-sm">
                                                         {(user.name || user.username || 'U').charAt(0).toUpperCase()}
                                                     </span>
+                                                    <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white shadow-sm ${user.isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-bold text-gray-900 leading-tight">
@@ -281,6 +295,18 @@ export default function UsersPage() {
                                                 }`}>
                                                 {user.role || 'USER'}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <Switch
+                                                    checked={user.isEnabled ?? true}
+                                                    onChange={(checked) => handleToggleStatus(user.id, checked)}
+                                                    size="sm"
+                                                />
+                                                <span className={`text-[9px] font-bold uppercase tracking-tighter ${user.isEnabled ?? true ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                    {user.isEnabled ?? true ? 'Active' : 'Disabled'}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex flex-col items-center gap-1">
