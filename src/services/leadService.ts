@@ -146,6 +146,11 @@ export const leadService = {
     return response.data;
   },
 
+  importLeads: async (data: { leads: { phoneNumber: string; name?: string }[] }) => {
+    const response = await axios.post<{ imported: number; skipped: number; errors: any[] }>('v1/leads/import', data);
+    return response.data;
+  },
+
   getStats: async () => {
     const response = await axios.get<LeadStats>('v1/leads/stats');
     return response.data;
